@@ -1,0 +1,9 @@
+﻿  phase1.c
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(104): warning C4013: 'print' undefined; assuming extern returning int
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(140): warning C4047: '=': 'char' differs in levels of indirection from 'void *'
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(42): warning C4047: 'initializing': 'char' differs in levels of indirection from 'void *'
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(46): warning C4047: 'initializing': 'char' differs in levels of indirection from 'void *'
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(47): warning C4047: 'initializing': 'char' differs in levels of indirection from 'void *'
+c:\users\bryan\documents\visual studio 2015\projects\phase1\phase1\phase1.c(85): warning C4047: 'initializing': 'char' differs in levels of indirection from 'void *'
+phase1.obj : error LNK2019: unresolved external symbol _print referenced in function _main
+C:\Users\bryan\Documents\Visual Studio 2015\Projects\phase1\Debug\phase1.exe : fatal error LNK1120: 1 unresolved externals
