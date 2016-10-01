@@ -166,11 +166,12 @@ int main()
 			}
 		}
 
-
+		/*
 		printf("-%s-\n", command);
 		printf("-%s-\n", param1);
 		printf("-%s-\n", param2);
 		printf("param# %i\n", numberOfParams);
+		*/
 
 		//TODO I could put these commands through a hash and then find them in constant time - micro optimization
 
