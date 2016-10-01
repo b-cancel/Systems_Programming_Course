@@ -119,7 +119,7 @@ int main()
 						{
 							int copy2;
 							//set the command to be our string (it might not fit...)
-							for (int copy2 = 0; copy2 < currWordLength; copy2++)
+							for (copy2 = 0; copy2 < currWordLength; copy2++)
 							{
 								param1[copy2] = currWord[copy2];
 							}
@@ -129,7 +129,7 @@ int main()
 						{
 							int copy3;
 							//set the command to be our string (it might not fit...)
-							for (int copy3 = 0; copy3 < currWordLength; copy3++)
+							for (copy3 = 0; copy3 < currWordLength; copy3++)
 							{
 								param2[copy3] = currWord[copy3];
 							}
