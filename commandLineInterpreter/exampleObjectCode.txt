@@ -1,0 +1,32 @@
+//NOTE: I am including comments although obviously object code should have comments
+//this is the object code that should be created by examplesource.txt
+
+//----------TO LEARN LIST
+	why is it jumping so much midway?
+	how is it deciding to go to a seperate line?
+	
+//----------BROKEN DOWN OBJECT CODE
+Header Record --- 6 byte starting location --- 6 bytes for program size
+HCOPY ---  		  001000 --- 				   00107A
+
+Code Record --- 6 byte address ---  2 byte size of instruct --- object code generated in assembly
+T ---			001000 --- 			1E --- 						1410334820390010362810303010154820613C100300102A0C103900102D
+T --- 			00101E --- 			15 --- 						0C10364820610810334C0000454F46000003000000
+*NOTE: here we jumped forward by 101B for reason unknown as of now... the rest use (next address = current address+size)
+T --- 		    002039 --- 			1E --- 						041030001030E0205D30203FD8205D2810303020575490392C205E38203F
+T --- 			002057 --- 			1C --- 						1010364C0000F1001000041030E02079302064509039DC20792C1036
+T --- 			002073 --- 			07 --- 						3820644C000006
+
+Linkage Record --- 
+
+End Record --- 6 byte starting location (I think)
+E --- 		   001000 
+
+//----------ACTUAL OBJECT CODE
+HCOPY 00100000107A 
+T0010001E1410334820390010362810303010154820613C100300102A0C103900102D
+T00101E150C10364820610810334C0000454F46000003000000
+T0020391E041030001030E0205D30203FD8205D2810303020575490392C205E38203F
+T0020571C1010364C0000F1001000041030E02079302064509039DC20792C1036
+T002073073820644C000006
+E001000 

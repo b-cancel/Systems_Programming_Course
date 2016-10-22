@@ -33,4 +33,6 @@ void pass2()
 		-code records
 		-end record
 	*/
+
+	//TODO figure out what to do with linkage records...
 }

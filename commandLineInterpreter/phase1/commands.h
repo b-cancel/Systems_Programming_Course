@@ -1,3 +1,11 @@
+/*
+Programmer: Bryan Cancel
+Date: 10/21/16
+
+this hold the prototypes for all the larger commands
+and holds the definitions of the smaller commands
+*/
+
 #pragma once
 #include "assemble.h"
 
