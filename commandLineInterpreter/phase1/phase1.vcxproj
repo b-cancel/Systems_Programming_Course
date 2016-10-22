@@ -154,10 +154,12 @@
     <ClCompile Include="commandLineInterpreter.c" />
     <ClCompile Include="pass1.c" />
     <ClCompile Include="pass2.c" />
+    <ClCompile Include="sicengine.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assemble.h" />
     <ClInclude Include="commands.h" />
+    <ClInclude Include="sic.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

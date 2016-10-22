@@ -24,6 +24,9 @@
     <ClInclude Include="assemble.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="commandLineInterpreter.c">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pass2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sicengine.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
