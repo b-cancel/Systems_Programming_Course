@@ -76,13 +76,14 @@ I was told
 	(5) make symbol table dynamic hash
 	(6) take every to lower or to upper only when needed instead of at the begining
 */
+
+#include <stdio.h>
+
 void pass1()
 { 
 	printf("pass 1 is being called \n");
 	
-	//the BYTE directive may take two types of operands: character string is 30 characters
-	//the max lenth of hex string is 16 bytes (32 hex digits)
-	//the number of hex digits must be even
+	
 
 	/*
 		THINGS TO WATCH OUT FOR
@@ -99,17 +100,42 @@ void pass1()
 				-we can have a max of 500 labels
 				-as for other symbols i dont know what this implies...
 			*Program Too Long (larger than 32,768 bytes of memory or 7FFFh)
+
+			//the BYTE directive may take two types of operands: character string is 30 characters
+			//the max lenth of hex string is 16 bytes (32 hex digits)
+			//the number of hex digits must be even
+
+			//NOTE: LOCCTR (aka location counter) is in hex
+			//as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
 	*/
+	char sourceBuffer[100] = "";
+	errno_t err;
+	//TODO check for errors by just using r
 
-	//NOTE: LOCCTR (aka location counter) is in hex
-	//as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
+	//open the file for reading
+	FILE *ourSourceFile;
+	//NOTE: we open in append mode so that if a file doesnt exist, it creates one a assembles... nothing... but it doesnt crash abnormally
+	err = ourSourceFile = fopen_s(&ourSourceFile, "/source.txt", "a");
 
-	/*
-	My Psuedo Code... will be here...
+	if (err == 0)//successfully opened
+	{
+		//subroutine to grab the dat line by line
+		fgets(sourceBuffer, 100, ourSourceFile);
 
-	*/
+		char oneComponents[100] = "";
 
-	//because the instructor said so after we are done we print the symbol table
+		if (sourceBuffer[0])//if the line is empty
+			;
+
+		/*
+		My Psuedo Code... will be here...
+
+		*/
+
+		//because the instructor said so after we are done we print the symbol table
+	}
+
+	
 }
 
 #pragma region Extra Symbol Table and Intermediate File Notes
