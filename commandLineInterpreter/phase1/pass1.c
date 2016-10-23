@@ -90,7 +90,7 @@ I was told
 
 //prototypes for helper funs used bellow
 void handleComment(char* commentLine);
-char* getFirstWord(char* codeLine, int length); //this returns the first word (ignore space in front)
+char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
 char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
 void printSymbolTableFile();
 
@@ -126,10 +126,11 @@ void pass1()
 	FILE *ourSourceFile;
 	FILE *ourIntermediateFile;
 
-	//place our files in their perspective streams and make sure they opened properly
+	//place the our files in their perspective streams and make sure they opened properly
 	if (fopen_s(&ourSourceFile, "./source.txt", "r") == 0 && fopen_s(&ourIntermediateFile, "./intermediate.txt", "w") ==0)
 	{
 		//TODO have this transition happens once and only once (right now we are constantly checking for the two things below)
+
 		/*
 		these two allow you to have "comments" before START and after END
 			STAGE1(before START) startFound=0; endFound =0
@@ -173,56 +174,56 @@ void pass1()
 			//----------begin tokening the line
 			if (startFound == 0) //if START directive NOT yet found... try to find it
 			{
-				
-				printf("STAGE 1 \n");
-				
-				//TODO implement label restrictions
-				//grab LABEL
-				strncpy_s(label,10, getFirstWord(sourceLine,10),10);
-			
-				printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
-				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
+				printf("in part one\n");
 
-				//remove the first word so we can now search for the second
-				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+				char firstWord[10] = "";
+				char secondWord[10] = "";
 
-				printf("left over: %n\n", tempSourceLine);
+				//grab out first word
+				strncpy_s(firstWord,10, getFirstWord(sourceLine),10);
 
-				printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
-				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
-
-				//TODO instruction restrictions
-				//grab INSTRUCTION
-				strncpy_s(instruction, 10, getFirstWord(tempSourceLine,10), 10);
-
-				if (strcmp(instruction, "START")) //if we have NOW found START directive
+				if (strlen(firstWord) < 10)
 				{
-					//tell the program start has been found
+					firstWord[strlen(firstWord)] = '\0';
+				}
+				else //if all avail space for the wordToCheck are filled... we still need our null terminator
+				{
+					firstWord[strlen(firstWord) - 1] = '\0'; //will remove a character but we need our null terminator
+				}
+			
+				//printf("old:  -%s-\n", sourceLine);
+				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+				//printf("new:  -%s-\n",tempSourceLine);
+
+				//grab 2nd word
+				//grab out first word
+				strncpy_s(secondWord, 10, getFirstWord(tempSourceLine), 10);
+
+				if (strlen(secondWord) < 10)
+				{
+					secondWord[strlen(secondWord)] = '\0';
+				}
+				else //if all avail space for the wordToCheck are filled... we still need our null terminator
+				{
+					secondWord[strlen(secondWord) - 1] = '\0'; //will remove a character but we need our null terminator
+				}
+
+				printf("hi\n");
+
+				printf("1st: -%s- | 2nd: -%s- \n", firstWord, secondWord); //for debuging
+
+				if (strcmp(secondWord, "START")) //if we have NOW found START directive
+				{
 					startFound == 1;
 
-					//remove the first word so we can now search for the second
-					strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
-
-					//grab OPERAND
-					strncpy_s(operand, 10, getFirstWord(tempSourceLine, 10), 10);
-
-					//grab comment
-					strncpy_s(comment, 10, tempSourceLine, 10);
-
 					//save #{Operand} as starting address
-					startingAddress = operand;
 
 					//initialize LOCCTR to starting address
-					LOCCTR = startingAddress;
 				}
 				//else we are working with a implied comment before START
-
-				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction,operand,comment); //for debuging
 			}
 			else if(endFound == 0) //if between START and END directive
 			{
-				printf("STAGE 2 \n");
-
 				//----------split up the line
 
 				if (isspace(sourceLine[0]) == 0) //we have a LABEL
@@ -285,13 +286,7 @@ void pass1()
 
 				
 			}
-			else //if END directive found
-			{
-				printf("STAGE 3 \n");
-
-				handleComment(sourceLine);
-				currentLineToFill++;
-			}
+			//else we have found an implied comment after END
 
 			//----------For Writing To Intermediate File
 
@@ -398,7 +393,7 @@ void handleComment(char* commentLine)
 	//add to intermediate file on next line
 }
 
-char* getFirstWord(char* codeLine, int length) //this returns the first word (ignore space in front)
+char* getFirstWord(char* codeLine) //this should extract and return the first word for codeline
 {
 	char theWord[100] = "";
 
@@ -419,24 +414,9 @@ char* getFirstWord(char* codeLine, int length) //this returns the first word (ig
 		}
 	}
 
-	printf("1 strlen %i\n",strlen(theWord));
-
-	
-	if (strlen(theWord) < length)
-	{
-		theWord[strlen(theWord)] = '\0';
-	}
-	else //if all avail space for the wordToCheck are filled... we still need our null terminator
-	{
-		theWord[strlen(theWord) - 1] = '\0'; //will remove a character but we need our null terminator
-	}
-
 	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
 
-	printf("2 strlen %i\n", strlen(theWord));
-
 	return theWord;
-
 }
 
 char* removeFirstWord(char* codeLine) //this should remove the first word from codeline and return codeline
