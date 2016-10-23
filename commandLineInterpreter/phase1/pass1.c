@@ -89,9 +89,9 @@ I was told
 #include <ctype.h>
 
 //prototypes for helper funs used bellow
-void handleComment(char* commentLine);
 char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
 char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
+char* giveNullTerminator(char* word, int len);
 void printSymbolTableFile();
 
 void pass1()
@@ -198,17 +198,6 @@ void pass1()
 				//grab 2nd word
 				//grab out first word
 				strncpy_s(secondWord, 10, getFirstWord(tempSourceLine), 10);
-
-				if (strlen(secondWord) < 10)
-				{
-					secondWord[strlen(secondWord)] = '\0';
-				}
-				else //if all avail space for the wordToCheck are filled... we still need our null terminator
-				{
-					secondWord[strlen(secondWord) - 1] = '\0'; //will remove a character but we need our null terminator
-				}
-
-				printf("hi\n");
 
 				printf("1st: -%s- | 2nd: -%s- \n", firstWord, secondWord); //for debuging
 
@@ -383,16 +372,7 @@ void printSymbolTableFile()
 	fclose(symtab);
 }
 
-void handleComment(char* commentLine)
-{
-	if (commentLine[0] != '.')//if there isnt a period in front of the comment, place one
-	{
-
-	}
-
-	//add to intermediate file on next line
-}
-
+//NOTE: I CHALLENGE YOU TO ADD AN INT PARAM TO THIS... so that the 10 passsed to the giveNullTerminator can be a variable... good luck... please give me a call if you succeed...
 char* getFirstWord(char* codeLine) //this should extract and return the first word for codeline
 {
 	char theWord[100] = "";
@@ -414,9 +394,26 @@ char* getFirstWord(char* codeLine) //this should extract and return the first wo
 		}
 	}
 
+	//I would have loved to use the number 10 as a paramter... but for the life of me I couldn't find out why it would break when passing an int as a param... it would return a char intead of a word... -_-
+	strcpy_s(theWord, 10, giveNullTerminator(theWord, 10));
+
 	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
 
 	return theWord;
+}
+
+char* giveNullTerminator(char* word, int len)
+{
+	if (strlen(word) < len)
+	{
+		word[strlen(word)] = '\0';
+	}
+	else //if all avail space for the wordToCheck are filled... we still need our null terminator
+	{
+		word[strlen(word) - 1] = '\0'; //will remove a character but we need our null terminator
+	}
+
+	return word;
 }
 
 char* removeFirstWord(char* codeLine) //this should remove the first word from codeline and return codeline

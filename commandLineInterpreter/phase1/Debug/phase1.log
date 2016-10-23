@@ -1,10 +1,11 @@
 ﻿  pass1.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(217): warning C4553: '==': operator has no effect; did you intend '='?
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(257): warning C4553: '==': operator has no effect; did you intend '='?
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(311): warning C4477: 'fprintf_s' : format string '%s' requires an argument of type 'char *', but variadic argument 1 has type 'int'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(402): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(429): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(441): warning C4047: '=': 'char' differs in levels of indirection from 'char [2]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(419): warning C4172: returning address of local variable or temporary: theWord
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(454): warning C4172: returning address of local variable or temporary: newCodeLine
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(208): warning C4553: '==': operator has no effect; did you intend '='?
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(248): warning C4553: '==': operator has no effect; did you intend '='?
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(302): warning C4477: 'fprintf_s' : format string '%s' requires an argument of type 'char *', but variadic argument 1 has type 'int'
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(384): warning C4018: '<': signed/unsigned mismatch
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(409): warning C4018: '<': signed/unsigned mismatch
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(428): warning C4018: '<': signed/unsigned mismatch
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(440): warning C4047: '=': 'char' differs in levels of indirection from 'char [2]'
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(404): warning C4172: returning address of local variable or temporary: theWord
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(453): warning C4172: returning address of local variable or temporary: newCodeLine
   phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe
