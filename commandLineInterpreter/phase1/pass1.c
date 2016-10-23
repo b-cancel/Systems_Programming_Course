@@ -92,6 +92,7 @@ I was told
 void handleComment(char* commentLine);
 char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
 char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
+char* checkForAndAddNullChar(char* wordToCheck); //check that we have a null char, if we dont then add one
 void printSymbolTableFile();
 
 void pass1()
@@ -126,11 +127,8 @@ void pass1()
 	FILE *ourSourceFile;
 	FILE *ourIntermediateFile;
 
-	//TODO make an exception for it failing... maybe... it its equal to 0 then we good
-	fopen_s(&ourIntermediateFile, "./intermediate.txt", "w"); //this should never fail, because if the file doesnt exist we are creating one
-
-	//place the file in our stream and make sure it was opened for reading properly
-	if (fopen_s(&ourSourceFile, "./source.txt", "r") == 0)
+	//place the our files in their perspective streams and make sure they opened properly
+	if (fopen_s(&ourSourceFile, "./source.txt", "r") == 0 && fopen_s(&ourIntermediateFile, "./intermediate.txt", "w") ==0)
 	{
 		//TODO have this transition happens once and only once (right now we are constantly checking for the two things below)
 
@@ -141,7 +139,7 @@ void pass1()
 			STAGE3(after END) startFound=1; endFound=1;
 		*/
 		int startFound = 0; // 1 for true; if found then start our regular pass1 process; else consider it a comment (space saving, multiline type)
-		int endFound = 0; // 1 for true; if found the end our rgeular pass1 process... consider lines a comment (space saving, multiline type); else continue regular pass1 process
+		int endFound = 0; // 1 for true; if found the end our regular pass1 process... consider lines a comment (space saving, multiline type); else continue regular pass1 process
 
 		int currentLineToFill = 0; //this keeps track of what line on the in the intermediate file
 
@@ -153,6 +151,10 @@ void pass1()
 
 		while (fgets(sourceLine,100, ourSourceFile) != NULL) //while end of file HASN'T been reached
 		{
+			printf("in while loop\n");
+
+			char tempSourceLine[100] = ""; //here we will store the line as we cut it up because we want to keep the original
+
 			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
 			char label[10] = "";
 			char instruction[10] = "";
@@ -173,12 +175,41 @@ void pass1()
 			//----------begin tokening the line
 			if (startFound == 0) //if START directive NOT yet found... try to find it
 			{
+				printf("in part one\n");
+
 				char firstWord[10] = "";
 				char secondWord[10] = "";
 
-				//grab 1st Word
+				//grab out first word
+				strncpy_s(firstWord,10, getFirstWord(sourceLine),10);
+
+				if (strlen(firstWord) < 10)
+				{
+					firstWord[strlen(firstWord)] = '\0';
+				}
+				else //if all avail space for the wordToCheck are filled... we still need our null terminator
+				{
+					firstWord[strlen(firstWord) - 1] = '\0'; //will remove a character but we need our null terminator
+				}
+			
+				//printf("old:  -%s-\n", sourceLine);
+				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+				//printf("new:  -%s-\n",tempSourceLine);
 
 				//grab 2nd word
+				//grab out first word
+				strncpy_s(secondWord, 10, getFirstWord(tempSourceLine), 10);
+
+				if (strlen(secondWord) < 10)
+				{
+					secondWord[strlen(secondWord)] = '\0';
+				}
+				else //if all avail space for the wordToCheck are filled... we still need our null terminator
+				{
+					secondWord[strlen(secondWord) - 1] = '\0'; //will remove a character but we need our null terminator
+				}
+
+				printf("1st: -%s- | 2nd: -%s- \n", firstWord, secondWord); //for debuging
 
 				if (strcmp(secondWord, "START")) //if we have NOW found START directive
 				{
@@ -310,6 +341,11 @@ void pass1()
 				currentLineToFill++;
 			}
 		}
+
+		//close our files
+		fclose(ourSourceFile);
+		fclose(ourIntermediateFile);
+		//close our symbol table here
 	}
 	
 	//After finished reading file, print symbol table
@@ -335,7 +371,8 @@ void printSymbolTableFile()
 			{
 				while (fgetc(symtab) != '\n' && !feof(symtab)) {};	//discard chars until newline
 			}
-			symtabLine[strlen(symtabLine) - 1] = '\0'; //set null terminator
+			//this will not crash for lines that do not overflow because those lines will have a \n as a last char which we then replace for \0
+			symtabLine[strlen(symtabLine)-1] = '\0'; //set null terminator
 
 			printf("%s-\n", symtabLine);
 		}
@@ -361,12 +398,79 @@ void handleComment(char* commentLine)
 
 char* getFirstWord(char* codeLine) //this should extract and return the first word for codeline
 {
-	
+	char theWord[100] = "";
+
+	int i = 0;
+	int wordLoc = 0;
+	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine
+	{
+		if (isspace(codeLine[i])!=0)
+		{
+			if (theWord[0] != '\0')
+				break; //we have found our first word
+			//else we are just getting rid of space in the front
+		}
+		else //a char was found so add it to the word
+		{
+			theWord[wordLoc] = codeLine[i];
+			wordLoc++;
+		}
+	}
+
+	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
+
+	return theWord;
+}
+
+char* checkForAndAddNullChar(char* wordToCheck) //check that we have a null char, if we dont then add one
+{
+	/*
+	printf("size of: %s | strlen:  %s \n", sizeof(wordToCheck), strlen(wordToCheck));
+
+	if (strlen(wordToCheck) < sizeof(wordToCheck) )
+	{
+		wordToCheck[strlen(wordToCheck)] = '\0';
+	}
+	else //if all avail space for the wordToCheck are filled... we still need our null terminator
+	{
+		wordToCheck[strlen(wordToCheck)-1] = '\0'; //will remove a character but we need our null terminator
+	}
+	*/
 }
 
 char* removeFirstWord(char* codeLine) //this should remove the first word from codeline and return codeline
 {
+	char newCodeLine[100] = "";
+	int charsToRemove = 0;
+	char temp[100] = "";
 
+	int i = 0;
+	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine till the end of the first word
+	{
+		if (isspace(codeLine[i]) != 0)
+		{
+			if (temp[0] != '\0')
+				break; //we have found our first word
+			else
+				charsToRemove+=1;//else we are just getting rid of space in the front
+		}
+		else //a char was found so add it to the word
+		{
+			charsToRemove+=1;
+			temp[0] = ".";
+		}
+	}
+
+	int nCLloc = 0;
+	int loopStoper = strlen(codeLine); 
+	for (charsToRemove, nCLloc; charsToRemove < loopStoper; charsToRemove += 1, nCLloc++) //loop through the codeLine till the end of the first word
+	{
+		newCodeLine[nCLloc] = codeLine[charsToRemove];
+	}
+
+	//the original line should already have an null terminator so we dont need to add one
+
+	return newCodeLine;
 }
 
 
