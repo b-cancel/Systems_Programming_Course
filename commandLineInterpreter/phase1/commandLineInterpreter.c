@@ -64,7 +64,7 @@ int main()
 
 		//get the line of input
 		fgets(buffer, sizeof(buffer), stdin);
-		//printf("answer: %s\n", buffer);
+
 		if (!strchr(buffer, '\n'))     //newline not found in current buffer
 		{
 			printf("WARNING --- You typed in more than the allowed %i chars per command \n i will truncate the rest of the characters but the command might not work as intended \n", sizeof(buffer));
@@ -74,7 +74,7 @@ int main()
 		//save userInputLength for easier access later
 		bufferLength = strlen(buffer) - 1;
 
-		//replace last char for null terminator (might lose some data but i told that to the user already)
+		//replace last char for null terminator (might lose some data but i told that to the user already) [precaution]
 		buffer[bufferLength] = '\0';
 
 		//printf("Buffer Length: %i",bufferLength);
@@ -275,10 +275,10 @@ void clearStrings() {
 
 //this is to just check if string parsing was done correctly
 void printStrings() {
-	printf("Buffer: -%s- \n", buffer);
+	printf("-----\nBuffer: -%s- \n", buffer);
 	printf("Command: -%s- \n", command);
 	//TODO if need more than two params... recode this for unlimited params
 	//printf("# of Params: %n \n", numberOfParams);
 	printf("Param 1: -%s- \n", param1);
-	printf("Param 2: -%s- \n", param2);
+	printf("Param 2: -%s- \n-----\n", param2);
 }

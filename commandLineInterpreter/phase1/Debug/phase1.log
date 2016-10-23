@@ -1,29 +1,4 @@
-﻿  sicengine.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(275): warning C4047: 'function': 'const size_t' differs in levels of indirection from 'char [4]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(275): warning C4024: 'sprintf_s': different types for formal and actual parameter 2
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(280): warning C4047: 'function': 'const size_t' differs in levels of indirection from 'char [11]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(280): warning C4024: 'sprintf_s': different types for formal and actual parameter 2
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(285): warning C4047: 'function': 'const size_t' differs in levels of indirection from 'char [15]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(285): warning C4024: 'sprintf_s': different types for formal and actual parameter 2
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(303): warning C4047: 'function': 'const size_t' differs in levels of indirection from 'char [14]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(303): warning C4024: 'sprintf_s': different types for formal and actual parameter 2
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(307): warning C4047: 'function': 'const size_t' differs in levels of indirection from 'char [13]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(307): warning C4024: 'sprintf_s': different types for formal and actual parameter 2
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(416): warning C4101: 'j': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(770): warning C4244: '=': conversion from 'ADDRESS' to 'BYTE', possible loss of data
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(786): warning C4101: 'result': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(785): warning C4101: 'i': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1011): warning C4101: 'i': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1207): warning C4554: '&': check operator precedence for possible error; use parentheses to clarify precedence
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1211): warning C4554: '&': check operator precedence for possible error; use parentheses to clarify precedence
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1306): warning C4101: 'i': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1306): warning C4101: 'modes': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1306): warning C4101: 'flags': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1389): warning C4101: 'fmt1': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1389): warning C4101: 'fmt4': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1387): warning C4101: 'disp': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1384): warning C4101: 'i': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1389): warning C4101: 'fmt3': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1389): warning C4101: 'fmt2': unreferenced local variable
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1387): warning C4101: 'addr': unreferenced local variable
+﻿  pass1.c
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(117): warning C4013: 'strchr' undefined; assuming extern returning int
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(122): warning C4013: 'strlen' undefined; assuming extern returning int
   phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe

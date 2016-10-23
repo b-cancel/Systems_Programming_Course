@@ -1,4 +1,3 @@
-
 /*
 Programmer: Bryan Cancel
 Date: 10/21/16
@@ -74,17 +73,23 @@ I was told
 		'File' Types [a] Command Line [b] Source File [c] Intermediate File
 	(4) make opcode table static hash
 	(5) make symbol table dynamic hash
-	(6) take every to lower or to upper only when needed instead of at the begining
 */
 
+//sic engine tie in
+#include "sic.h"
+
+//library includes
 #include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+//prototypes for helper funs used bellow
+void handleComment(char* commentLine);
+char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
+char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
 
 void pass1()
 { 
-	printf("pass 1 is being called \n");
-	
-	
-
 	/*
 		THINGS TO WATCH OUT FOR
 			*Duplicate Labels
@@ -108,35 +113,194 @@ void pass1()
 			//NOTE: LOCCTR (aka location counter) is in hex
 			//as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
 	*/
-	char sourceBuffer[100] = "";
-	errno_t err;
-	//TODO check for errors by just using r
 
-	//open the file for reading
+	printf("pass 1 is being called \n");
+
 	FILE *ourSourceFile;
-	//NOTE: we open in append mode so that if a file doesnt exist, it creates one a assembles... nothing... but it doesnt crash abnormally
-	err = ourSourceFile = fopen_s(&ourSourceFile, "/source.txt", "a");
 
-	if (err == 0)//successfully opened
+	//place the file in our stream and make sure it was opened for reading properly
+	if (fopen_s(&ourSourceFile, "./source.txt", "r") == 0)
 	{
-		//subroutine to grab the dat line by line
-		fgets(sourceBuffer, 100, ourSourceFile);
+		//TODO have this transition happens once and only once (right now we are constantly checking for the two things below)
 
-		char oneComponents[100] = "";
+		//these two allow you to have "comments" before START and after END
+		int startFound = 0; // 1 for true; if found then start our regular pass1 process; else consider it a comment (space saving, multiline type)
+		int endFound = 0; // 1 for true; if found the end our rgeular pass1 process... consider lines a comment (space saving, multiline type); else continue regular pass1 process
 
-		if (sourceBuffer[0])//if the line is empty
-			;
+		int currentLineToFill = 0; //this keeps track of what line on the in the intermediate file
 
-		/*
-		My Psuedo Code... will be here...
+		while (feof(ourSourceFile) == 0) //while end of file hasnt been reached
+		{
+			char sourceLine[100] = ""; //this keep track of the line being read in
+			char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
 
-		*/
+			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
+			char* label[10] = "";
+			char* instruction[10] = "";
+			char* operand[10] = "";
+			char* comment[100] = "";
 
-		//because the instructor said so after we are done we print the symbol table
+			//----------grab the a line from file, make sure that it doenst exceed our desired line char size, If so warn the user in intermediate file and empty
+			fgets(sourceLine, 100, ourSourceFile);
+			if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
+			{
+				strcat_s(errors, 100, "line too long-");
+				while (fgetc(stdin) != '\n');	//discard chars until newline
+			}
+			sourceLine[strlen(sourceLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
+
+			//----------begin tokening the line
+			//TODO cover for the error of finding another start directive after the first start
+			if (startFound == 0) //if START directive NOT yet found... try to find it
+			{
+				char* firstWord[10] = "";
+				char* secondWord[10] = "";
+
+				//grab 1st Word
+
+				//grab 2nd word
+
+				if (strcmp(secondWord, "START")) //if we have NOW found START directive
+				{
+					startFound == 1;
+
+					//save #{Operand} as starting address
+
+					//initialize LOCCTR to starting address
+				}
+				else
+				{
+					handleComment(sourceLine);
+					currentLineToFill++;
+				}
+			}
+			else if(endFound == 0) //if between START and END directive
+			{
+				//----------split up the line
+
+				if (isspace(sourceLine[0]) == 0) //we have a LABEL
+				{
+					//grab the label
+
+					//search Symbol Table for Label
+					
+					//if Found then set ERROR - duplicate label
+					//else inser (Label, LOCCTR) into Symbo Table
+				}
+				
+				//grab instruction (aka OPCODE)
+
+				//grab operand OR operand,X
+
+				//rest of line is comment
+
+				//----------decide what to do with opcode
+
+				if (instruction == 0) //If the instruction is in the opcode table
+				{
+					//add 3 to the location counter LOCCTR
+
+					//replace opcode with hex equivalent
+				}
+				else //if we are looking at a directive
+				{
+					if (strcmp(instruction, "END")) //if we have NOW found the END directive
+					{
+						endFound == 1;
+					}
+					else if (strcmp(instruction, "WORD"))
+					{
+						//add 3 to LOCCTR
+					}
+					else if(strcmp(instruction, "RESB"))
+					{
+						//add #[Operand] to LOCCTR
+					}
+					else if (strcmp(instruction, "RESW"))
+					{
+						//add 3*#[Operand] to LOCCTR
+					}
+					else if (strcmp(instruction, "BYTE"))
+					{
+						//find length of constants in bytes
+						//add length to LOCCTR
+					}
+					else
+					{
+						//set error flag because the instruction isnt an opcode and insnt a directive
+					}
+				}
+
+				
+			}
+			else //if END directive found
+			{
+				handleComment(sourceLine);
+				currentLineToFill++;
+			}
+
+			//----------For Writing To Intermediate File
+
+			//make sure current line we are on is a line of base 5 (FIRST 5: (1,2,3,4,5) | (6,7,8,9,10) | (11,12,13,14,15)
+			if (((currentLineToFill-1) % 5) != 0) //if we aren't on the appropriate line... we adjst
+			{
+				//ex: if number is 9
+				int extra = currentLineToFill % 5; //this will yield 4
+				currentLineToFill += (5 - extra) + 1; //9 + (5 - 4) = 9+1 = 10 + 1 = 11 a.k.a. good spot to place new data
+			}
+
+			//write source line
+
+			//write value of location counter
+
+			//write values of mneumonics (since they had to be looked up)
+
+			//write values of operands since we had to get them (dont separate things between commas)
+
+			//error messages if any - otherwise blank line
+
+
+			/*REMEMBER
+			Instruction operands must be in the form
+				[a] operand
+				[b] operand,X
+				[*] where the operand is either :
+					(1) a symbol that is used as a label in the source program
+						[*] can only be 6 alpha numeric chars long
+						[*] MUST start with a letter
+					(2) actually a hex address
+						[*] hex addresses that would begin with 'A' through 'F' MUST have a leading '0' to distinguish them from a label
+			*/
+
+			//because the instructor said so after we are done we print the symbol table
+		}
 	}
+	else
+		printf("There was an error when trying to open the File, so no symbol table is available\n");
 
 	
 }
+
+void handleComment(char* commentLine)
+{
+	if (commentLine[0] != '.')//if there isnt a period in front of the comment, place one
+	{
+
+	}
+
+	//add to intermediate file on next line
+}
+
+char* getFirstWord(char* codeLine) //this should extract and return the first word for codeline
+{
+	
+}
+
+char* removeFirstWord(char* codeLine) //this should remove the first word from codeline and return codeline
+{
+
+}
+
 
 #pragma region Extra Symbol Table and Intermediate File Notes
 

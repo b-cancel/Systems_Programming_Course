@@ -22,6 +22,7 @@ and as of now that is the MAX consumer computers have
 this WILL NOT work for machines that work on more than 64 bits
 and MIGHT NOT work for machines with less than 64 bits
 
+NOTE: might have to use "errno_t err;" do detect erros from fopen_s instead of just checking if it return 0 or not
 ----------
 
 This version of the SIC simulator includes all SIC/XE instructions
