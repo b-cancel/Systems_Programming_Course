@@ -150,8 +150,6 @@ void pass1()
 
 		while (fgets(sourceLine,100, ourSourceFile) != NULL) //while end of file HASN'T been reached
 		{
-			printf("in while loop\n");
-
 			char tempSourceLine[100] = ""; //here we will store the line as we cut it up because we want to keep the original
 
 			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
@@ -174,45 +172,48 @@ void pass1()
 			//----------begin tokening the line
 			if (startFound == 0) //if START directive NOT yet found... try to find it
 			{
-				printf("in part one\n");
-
-				char firstWord[10] = "";
-				char secondWord[10] = "";
+				printf("BEFORE START \n");
 
 				//grab out first word
-				strncpy_s(firstWord,10, getFirstWord(sourceLine),10);
-
-				if (strlen(firstWord) < 10)
-				{
-					firstWord[strlen(firstWord)] = '\0';
-				}
-				else //if all avail space for the wordToCheck are filled... we still need our null terminator
-				{
-					firstWord[strlen(firstWord) - 1] = '\0'; //will remove a character but we need our null terminator
-				}
+				strncpy_s(label,10, getFirstWord(sourceLine),10);
 			
-				//printf("old:  -%s-\n", sourceLine);
+				//remove first word from our sourLine and store in tempSourceLine so our source line isnt affect for use in intermediate file
 				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
-				//printf("new:  -%s-\n",tempSourceLine);
 
 				//grab 2nd word
 				//grab out first word
-				strncpy_s(secondWord, 10, getFirstWord(tempSourceLine), 10);
+				strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 10);
 
-				printf("1st: -%s- | 2nd: -%s- \n", firstWord, secondWord); //for debuging
-
-				if (strcmp(secondWord, "START")) //if we have NOW found START directive
+				if (strcmp(instruction, "START")==0) //if we have NOW found START directive
 				{
+					//tell the program start has been found
 					startFound == 1;
 
+					//remove the first word so we can now search for the second
+					strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+					
+					//grab OPERAND
+					strncpy_s(operand, 10, getFirstWord(tempSourceLine, 10), 10);
+					
+					//grab comment
+					strncpy_s(comment, 100, tempSourceLine, 100);
+					
 					//save #{Operand} as starting address
+					startingAddress = operand;
 
 					//initialize LOCCTR to starting address
+					LOCCTR = startingAddress;
 				}
 				//else we are working with a implied comment before START
+				//TODO make sure to take care of this after wards
+
+				printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
+				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
 			}
 			else if(endFound == 0) //if between START and END directive
 			{
+				printf("AFTER START \n");
+
 				//----------split up the line
 
 				if (isspace(sourceLine[0]) == 0) //we have a LABEL
@@ -241,23 +242,23 @@ void pass1()
 				}
 				else //if we are looking at a directive
 				{
-					if (strcmp(instruction, "END")) //if we have NOW found the END directive
+					if (strcmp(instruction, "END")==0) //if we have NOW found the END directive
 					{
 						endFound == 1;
 					}
-					else if (strcmp(instruction, "WORD"))
+					else if (strcmp(instruction, "WORD") == 0)
 					{
 						//add 3 to LOCCTR
 					}
-					else if(strcmp(instruction, "RESB"))
+					else if(strcmp(instruction, "RESB") == 0)
 					{
 						//add #[Operand] to LOCCTR
 					}
-					else if (strcmp(instruction, "RESW"))
+					else if (strcmp(instruction, "RESW") == 0)
 					{
 						//add 3*#[Operand] to LOCCTR
 					}
-					else if (strcmp(instruction, "BYTE"))
+					else if (strcmp(instruction, "BYTE") == 0)
 					{
 						//find length of constants in bytes
 						//add length to LOCCTR
@@ -266,7 +267,7 @@ void pass1()
 					{
 						//set error flag because the instruction isnt an opcode and insnt a directive
 						
-						if(strcmp(instruction, "START"))
+						if(strcmp(instruction, "START") == 0)
 							strcat_s(errors, 100, "# of START dir > 1-");
 						else
 							strcat_s(errors, 100, "Opcode/Directive not recognized-");
