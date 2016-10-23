@@ -1,4 +1,4 @@
 ﻿  pass1.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(117): warning C4013: 'strchr' undefined; assuming extern returning int
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(122): warning C4013: 'strlen' undefined; assuming extern returning int
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(336): warning C4716: 'getFirstWord': must return a value
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(341): warning C4716: 'removeFirstWord': must return a value
   phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe

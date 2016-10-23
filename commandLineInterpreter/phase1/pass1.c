@@ -21,13 +21,15 @@ I am Assuming
 			[*]{label} instruction {operand{,X}} comment
 		(I implied)	
 			[*]---NO SPACES OR TABS---{label}--arbitrary number of space (ANOF)---instruction---(ANOF)---{operand{,X}}---(ANOF)---c---(ANOF)---omm---(ANOF)---ent
-
 (2) its okay for the symbol table to be stored in a file for the sake of simplicity (speed is terrible I know)
 (3) we dont having different scopes for labels, since it was never indicated
 (4) Errors are passed to pass 2 through the intermediate file
 (5) i might have random text before START and After END
 (6) we are using the sicengine.c file edited by the professor (Egle) to run directives, and get opcode hex equivalents
 (7) Symbols are only Labels... because i didnt see anything that told me anything differently
+----------
+(8) each line is not longer than "MAX_CHARS_PER_LINE"
+(9) the largest size of (label) (instruction) (operand-size of 6) (comment-size of 100)
 
 I have decided to
 (1) For Symbol Table
@@ -75,6 +77,9 @@ I was told
 	(5) make symbol table dynamic hash
 */
 
+//constants that will eventually be used throughout code
+#define MAX_CHARS_PER_LINE 100;
+
 //sic engine tie in
 #include "sic.h"
 
@@ -87,6 +92,7 @@ I was told
 void handleComment(char* commentLine);
 char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
 char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
+void printSymbolTableFile();
 
 void pass1()
 { 
@@ -115,6 +121,9 @@ void pass1()
 	*/
 
 	printf("pass 1 is being called \n");
+	printSymbolTableFile();
+	
+	/*
 
 	FILE *ourSourceFile;
 
@@ -129,19 +138,21 @@ void pass1()
 
 		int currentLineToFill = 0; //this keeps track of what line on the in the intermediate file
 
-		while (feof(ourSourceFile) == 0) //while end of file hasnt been reached
+		while (feof(ourSourceFile) == 0) //while end of file HASN'T been reached
 		{
-			char sourceLine[100] = ""; //this keep track of the line being read in
+			char sourceLine[100]; //this keeps track of the line being read in
 			char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
 
 			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
-			char* label[10] = "";
+			char* label[10] = ""; //if start with a char 'A'-'F' have a leading 0 to distinguish it from an operand
 			char* instruction[10] = "";
-			char* operand[10] = "";
+			//FORM: operand OR operand,X
+			//we are using 7 chars in case we need to use the leading 0
+			char* operand[7] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
 			char* comment[100] = "";
 
 			//----------grab the a line from file, make sure that it doenst exceed our desired line char size, If so warn the user in intermediate file and empty
-			fgets(sourceLine, 100, ourSourceFile);
+			fgets(sourceLine, 100, ourSourceFile); //TODO make it grab the next line in the file
 			if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
 			{
 				strcat_s(errors, 100, "line too long-");
@@ -259,26 +270,47 @@ void pass1()
 
 			//error messages if any - otherwise blank line
 
-
-			/*REMEMBER
-			Instruction operands must be in the form
-				[a] operand
-				[b] operand,X
-				[*] where the operand is either :
-					(1) a symbol that is used as a label in the source program
-						[*] can only be 6 alpha numeric chars long
-						[*] MUST start with a letter
-					(2) actually a hex address
-						[*] hex addresses that would begin with 'A' through 'F' MUST have a leading '0' to distinguish them from a label
-			*/
-
-			//because the instructor said so after we are done we print the symbol table
+			
 		}
+
+		//After finished reading file, print symbol table
+		printSymbolTableFile();
 	}
 	else
 		printf("There was an error when trying to open the File, so no symbol table is available\n");
-
+	*/
 	
+}
+
+void printSymbolTableFile()
+{
+	//open symbol table file
+	FILE *symtab;
+
+	//if successfully opened symbol table file
+	if (fopen_s(&symtab, "./symtab.txt", "r") == 0)
+	{
+		while (!feof(symtab))
+		{
+			char symtabLine[100] = "";
+
+			fgets(symtabLine, 100, symtab); //TODO make it grab the next line in the file
+			if (!strchr(symtabLine, '\n'))     //newline not found in current buffer
+			{
+				while (fgetc(stdin) != '\n');	//discard chars until newline
+			}
+			symtabLine[strlen(symtabLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
+
+			printf("%s\n", symtabLine);
+		}
+	}
+	else
+	{
+		printf("there was an error when trying to print the symbol table");
+	}
+
+	//close symbol table file
+	fclose(symtab);
 }
 
 void handleComment(char* commentLine)
