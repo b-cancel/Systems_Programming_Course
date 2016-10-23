@@ -1,4 +1,6 @@
 ﻿  pass1.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(336): warning C4716: 'getFirstWord': must return a value
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(341): warning C4716: 'removeFirstWord': must return a value
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(174): warning C4553: '==': operator has no effect; did you intend '='?
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(218): warning C4553: '==': operator has no effect; did you intend '='?
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(327): warning C4716: 'getFirstWord': must return a value
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(332): warning C4716: 'removeFirstWord': must return a value
   phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe

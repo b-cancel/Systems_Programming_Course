@@ -111,6 +111,7 @@ void pass1()
 				-we can have a max of 500 labels
 				-as for other symbols i dont know what this implies...
 			*Program Too Long (larger than 32,768 bytes of memory or 7FFFh)
+			*finding another START Directive
 
 			//the BYTE directive may take two types of operands: character string is 30 characters
 			//the max lenth of hex string is 16 bytes (32 hex digits)
@@ -120,52 +121,60 @@ void pass1()
 			//as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
 	*/
 
-	printf("pass 1 is being called \n");
-	printSymbolTableFile();
-	
-	/*
+	printf("pass 1 is being called \n");	
 
 	FILE *ourSourceFile;
+	FILE *ourIntermediateFile;
+
+	//TODO make an exception for it failing... maybe... it its equal to 0 then we good
+	fopen_s(&ourIntermediateFile, "./intermediate.txt", "w"); //this should never fail, because if the file doesnt exist we are creating one
 
 	//place the file in our stream and make sure it was opened for reading properly
 	if (fopen_s(&ourSourceFile, "./source.txt", "r") == 0)
 	{
 		//TODO have this transition happens once and only once (right now we are constantly checking for the two things below)
 
-		//these two allow you to have "comments" before START and after END
+		/*
+		these two allow you to have "comments" before START and after END
+			STAGE1(before START) startFound=0; endFound =0
+			STAGE2(after START before END) startFound=1; endFound=0;
+			STAGE3(after END) startFound=1; endFound=1;
+		*/
 		int startFound = 0; // 1 for true; if found then start our regular pass1 process; else consider it a comment (space saving, multiline type)
 		int endFound = 0; // 1 for true; if found the end our rgeular pass1 process... consider lines a comment (space saving, multiline type); else continue regular pass1 process
 
 		int currentLineToFill = 0; //this keeps track of what line on the in the intermediate file
 
-		while (feof(ourSourceFile) == 0) //while end of file HASN'T been reached
-		{
-			char sourceLine[100]; //this keeps track of the line being read in
-			char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
+		char startingAddress = 0x0;
+		char LOCCTR = 0x0; //location counter
 
+		char sourceLine[100]; //this keeps track of the line being read in
+		char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
+
+		while (fgets(sourceLine,100, ourSourceFile) != NULL) //while end of file HASN'T been reached
+		{
 			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
-			char* label[10] = ""; //if start with a char 'A'-'F' have a leading 0 to distinguish it from an operand
-			char* instruction[10] = "";
+			char label[10] = "";
+			char instruction[10] = "";
 			//FORM: operand OR operand,X
 			//we are using 7 chars in case we need to use the leading 0
-			char* operand[7] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
-			char* comment[100] = "";
+			char operand[7] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
+			char comment[100] = "";
 
-			//----------grab the a line from file, make sure that it doenst exceed our desired line char size, If so warn the user in intermediate file and empty
-			fgets(sourceLine, 100, ourSourceFile); //TODO make it grab the next line in the file
+			//TODO make this some sort of function... its repeated twice so far in this file
+			//----------make sure line doenst exceed our desired line char size, If so warn the user in intermediate file and empty
 			if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
 			{
 				strcat_s(errors, 100, "line too long-");
-				while (fgetc(stdin) != '\n');	//discard chars until newline
+				while (fgetc(stdin) != '\n') {};	//discard chars until newline
 			}
 			sourceLine[strlen(sourceLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
 
 			//----------begin tokening the line
-			//TODO cover for the error of finding another start directive after the first start
 			if (startFound == 0) //if START directive NOT yet found... try to find it
 			{
-				char* firstWord[10] = "";
-				char* secondWord[10] = "";
+				char firstWord[10] = "";
+				char secondWord[10] = "";
 
 				//grab 1st Word
 
@@ -179,11 +188,7 @@ void pass1()
 
 					//initialize LOCCTR to starting address
 				}
-				else
-				{
-					handleComment(sourceLine);
-					currentLineToFill++;
-				}
+				//else we are working with a implied comment before START
 			}
 			else if(endFound == 0) //if between START and END directive
 			{
@@ -239,6 +244,11 @@ void pass1()
 					else
 					{
 						//set error flag because the instruction isnt an opcode and insnt a directive
+						
+						if(strcmp(instruction, "START"))
+							strcat_s(errors, 100, "# of START dir > 1-");
+						else
+							strcat_s(errors, 100, "Opcode/Directive not recognized-");
 					}
 				}
 
@@ -252,33 +262,59 @@ void pass1()
 
 			//----------For Writing To Intermediate File
 
-			//make sure current line we are on is a line of base 5 (FIRST 5: (1,2,3,4,5) | (6,7,8,9,10) | (11,12,13,14,15)
-			if (((currentLineToFill-1) % 5) != 0) //if we aren't on the appropriate line... we adjst
+			if (startFound == 1 && endFound == 0) //only write the five fields if we are within the assembly portion of the file
 			{
-				//ex: if number is 9
-				int extra = currentLineToFill % 5; //this will yield 4
-				currentLineToFill += (5 - extra) + 1; //9 + (5 - 4) = 9+1 = 10 + 1 = 11 a.k.a. good spot to place new data
+				//make sure current line we are on is a line of base 5 (FIRST 5: (1,2,3,4,5) | (6,7,8,9,10) | (11,12,13,14,15)
+				if (((currentLineToFill - 1) % 5) != 0) //if we aren't on the appropriate line... we adjust
+				{
+					//ex: if number is 9
+					int extra = (5 - (currentLineToFill % 5)); //(5-4) = 1
+					for (extra; extra > 0; extra-=1)
+					{
+						fprintf_s(ourIntermediateFile, "-----free space to keep formatting-----");
+					}
+					currentLineToFill += extra + 1; // 9 + extra(1) = 9+1 = 10 + 1 = 11 a.k.a. good spot to place new data
+				}
+
+				//write source line
+				fprintf_s(ourIntermediateFile, "Source: %s",sourceLine);
+
+				//write value of location counter
+				fprintf_s(ourIntermediateFile, "LOCCTR: %s",LOCCTR);
+
+				//write values of mneumonics (since they had to be looked up)
+				fprintf_s(ourIntermediateFile, "Opcode: %s",instruction);
+
+				//write values of operands since we had to get them (dont separate things between commas)
+				fprintf_s(ourIntermediateFile, "Operand: %s",operand);
+
+				//error messages if any - otherwise blank line
+				fprintf_s(ourIntermediateFile, "Erros:  %s", errors);
+
 			}
+			else //we are working with a comment before START or after END
+			{
+				//if it doesnt have the comment indicator that give it the comment indicator
+				if (sourceLine[0] != '.')
+				{
+					char temp[100] = ".";
+					strcat_s(temp, 100, sourceLine);
+					temp[strlen(temp) - 1] = '\0'; //add null terminator
+					fprintf_s(ourIntermediateFile, "%s", temp);
+				}
+				else
+				{
+					fprintf_s(ourIntermediateFile, "%s", sourceLine);
+				}	
 
-			//write source line
-
-			//write value of location counter
-
-			//write values of mneumonics (since they had to be looked up)
-
-			//write values of operands since we had to get them (dont separate things between commas)
-
-			//error messages if any - otherwise blank line
-
-			
+				currentLineToFill++;
+			}
 		}
-
-		//After finished reading file, print symbol table
-		printSymbolTableFile();
 	}
-	else
-		printf("There was an error when trying to open the File, so no symbol table is available\n");
-	*/
+	
+	//After finished reading file, print symbol table
+	printSymbolTableFile();
+	
 	
 }
 
@@ -290,18 +326,18 @@ void printSymbolTableFile()
 	//if successfully opened symbol table file
 	if (fopen_s(&symtab, "./symtab.txt", "r") == 0)
 	{
-		while (!feof(symtab))
+		char symtabLine[100]="";
+
+		while (fgets(symtabLine, 100, symtab) != NULL) //as long as eof isnt reached
 		{
-			char symtabLine[100] = "";
-
-			fgets(symtabLine, 100, symtab); //TODO make it grab the next line in the file
-			if (!strchr(symtabLine, '\n'))     //newline not found in current buffer
+			
+			if (!strchr(symtabLine, '\n'))     //if newline not found - we need to clip line
 			{
-				while (fgetc(stdin) != '\n');	//discard chars until newline
+				while (fgetc(symtab) != '\n' && !feof(symtab)) {};	//discard chars until newline
 			}
-			symtabLine[strlen(symtabLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
+			symtabLine[strlen(symtabLine) - 1] = '\0'; //set null terminator
 
-			printf("%s\n", symtabLine);
+			printf("%s-\n", symtabLine);
 		}
 	}
 	else
