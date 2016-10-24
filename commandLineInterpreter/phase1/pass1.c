@@ -88,7 +88,7 @@ I was told
 #include <string.h>
 #include <ctype.h>
 
-//prototypes for helper funs used bellow
+//prototypes for helper funcs used bellow
 char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
 char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
 char* giveNullTerminator(char* word, int len);
@@ -163,10 +163,7 @@ void pass1()
 			//TODO make this some sort of function... its repeated twice so far in this file
 			//----------make sure line doenst exceed our desired line char size, If so warn the user in intermediate file and empty
 			if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
-			{
 				strcat_s(errors, 100, "line too long-");
-				while (fgetc(stdin) != '\n') {};	//discard chars until newline
-			}
 			sourceLine[strlen(sourceLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
 
 			//----------begin tokening the line
@@ -174,29 +171,33 @@ void pass1()
 			{
 				printf("BEFORE START \n");
 
-				//grab out first word
-				strncpy_s(label,10, getFirstWord(sourceLine),10);
+				//grab LABEL
+				strncpy_s(label, 10, getFirstWord(sourceLine), 10);
 			
 				//remove first word from our sourLine and store in tempSourceLine so our source line isnt affect for use in intermediate file
 				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
 
-				//grab 2nd word
-				//grab out first word
-				strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 10);
+				//grab INSTRUCTION
+				strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 100);
 
 				if (strcmp(instruction, "START")==0) //if we have NOW found START directive
 				{
 					//tell the program start has been found
 					startFound == 1;
 
-					//remove the first word so we can now search for the second
+					//remove INSTRUCT
 					strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
-					
+
 					//grab OPERAND
-					strncpy_s(operand, 10, getFirstWord(tempSourceLine, 10), 10);
+					strncpy_s(operand, 10, getFirstWord(tempSourceLine), 10);
+					printf("operand length:  %i \n", strlen(operand));
 					
-					//grab comment
+					//remove OPERAND
+					strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+					//grab COMMENT
 					strncpy_s(comment, 100, tempSourceLine, 100);
+					comment[strlen(comment) - 1] = '\0'; //null terminate comment
 					
 					//save #{Operand} as starting address
 					startingAddress = operand;
@@ -382,21 +383,28 @@ char* getFirstWord(char* codeLine) //this should extract and return the first wo
 	int wordLoc = 0;
 	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine
 	{
+		//printf("we are on char: -%c- ", codeLine[i]);
 		if (isspace(codeLine[i])!=0)
 		{
+			//printf("is considered a space\n");
 			if (theWord[0] != '\0')
 				break; //we have found our first word
 			//else we are just getting rid of space in the front
 		}
 		else //a char was found so add it to the word
 		{
+			//printf("is considered NOT a space\n");
 			theWord[wordLoc] = codeLine[i];
 			wordLoc++;
 		}
 	}
 
+	//printf("Before null: %i\n", strlen(theWord));
+
 	//I would have loved to use the number 10 as a paramter... but for the life of me I couldn't find out why it would break when passing an int as a param... it would return a char intead of a word... -_-
 	strcpy_s(theWord, 10, giveNullTerminator(theWord, 10));
+
+	//printf("After null: %i\n", strlen(theWord));
 
 	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
 
@@ -451,7 +459,6 @@ char* removeFirstWord(char* codeLine) //this should remove the first word from c
 
 	return newCodeLine;
 }
-
 
 #pragma region Extra Symbol Table and Intermediate File Notes
 

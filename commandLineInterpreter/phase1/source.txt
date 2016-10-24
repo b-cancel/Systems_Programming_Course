@@ -1,4 +1,4 @@
-COPY   START  1000
+COPY   START  1000  slkdjfks    sdljsd f  stuff commentsasdfasdfa;ls asldjkfa sdl; a;lsdkjfa  a sdlfjk aa sdf;ajsdf asldkfj a sddone
 FIRST  STL    RETADR
 CLOOP  JSUB   RDREC
        LDA    LENGTH
