@@ -1,8 +1,9 @@
 ﻿  pass1.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(467): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(499): warning C4018: '<': signed/unsigned mismatch
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(189): warning C4020: 'strcpy_s': too many actual parameters
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(485): warning C4018: '<': signed/unsigned mismatch
 c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(518): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(530): warning C4047: '=': 'char' differs in levels of indirection from 'char [2]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(494): warning C4172: returning address of local variable or temporary: theWord
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(543): warning C4172: returning address of local variable or temporary: newCodeLine
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(537): warning C4018: '<': signed/unsigned mismatch
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(549): warning C4047: '=': 'char' differs in levels of indirection from 'char [2]'
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(513): warning C4172: returning address of local variable or temporary: theWord
+c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(562): warning C4172: returning address of local variable or temporary: newCodeLine
   phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe

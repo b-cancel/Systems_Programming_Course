@@ -1,6 +1,6 @@
 /*
 Programmer: Bryan Cancel
-Date: 10/21/16
+Date: 10/21/16 -> 10/25/16
 
 Pass 1 will create:
 -symbol table
@@ -148,60 +148,79 @@ void pass1()
 		char sourceLine[100]; //this keeps track of the line being read in
 		char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
 
+		/*NOTES ON FGETS: (these really should be in the official documentation but...) 
+		(1) fgets will automatically end destination string with a \0
+		(2) if a newline is in the last location of the dest. string, it will be replaced by \0... this isnt the case for any other chars... BUT It might happen for other escape sequences (\t, etc)
+		(3) the max length of strlen(dest. string) is 1 smaller than the actual space you allocated in the dest. because it needs the \0 
+			a.k.a.: the null terminator doesnt not count for strlen(dest. string)
+		(*) fgets breaks on newline char*/
+
 		while (fgets(sourceLine,100, ourSourceFile) != NULL) //while end of file HASN'T been reached
 		{
+
+			printf("\n----------\n");
+
 			char tempSourceLine[100] = ""; //here we will store the line as we cut it up because we want to keep the original
 
 			//----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
-			char label[10] = "";
-			char instruction[10] = "";
+			char label[100] = "";
+			char instruction[100] = "";
 			//FORM: operand OR operand,X
 			//we are using 7 chars in case we need to use the leading 0
-			char operand[10] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
+			char operand[100] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
 			char comment[100] = "";
 
 			//TODO make this some sort of function... its repeated twice so far in this file
 			//----------make sure line doenst exceed our desired line char size, If so warn the user in intermediate file and empty
 			if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
 			{
-				sourceLine[strlen(sourceLine) - 1] = '\0';
-				printf("our desired sourcline: -%s-\n", sourceLine);
-
 				strcat_s(errors, 100, "line too long-");
-
-				while (!strchr(sourceLine, '\n'))
+				while (!strchr(tempSourceLine, '\n'))
 				{
-					fgets(sourceLine, 100, ourSourceFile);
-
-					printf("extra sourceline: -%s-\n", sourceLine);
+					fgets(tempSourceLine, 100, ourSourceFile);
+					printf("extra sourceline: -%s-\n", tempSourceLine);
 				}
 			}
+			else //remove new line char because we dont need it and it causes formatting issues in the intermediate file
+			{
+				sourceLine[strlen(sourceLine) - 1] = '\0';
+			}
 
-			printf("done");
-				
-			sourceLine[strlen(sourceLine) - 1] = '\0'; //set the last char in the sourceBuffer as a null terminator [precaution]
+			strcpy_s(tempSourceLine, 100, sourceLine, 100); //we need to cut away the word but we also want to keep the sourceline intact
+			//so we use tempsourceline to cut in and sourceline we keep intact
+			
+			printf("our desired sourceline: -%s- of length -%i-\n", sourceLine, strlen(sourceLine));
+
+			//everything up to here works
 
 			//grab the LABEL
-			strncpy_s(label, 10, getFirstWord(sourceLine), 100);
+			strncpy_s(label, 100, getFirstWord(sourceLine), 100);
+
+			//TODO fix strane but where label is clipped (not in getfirst word or in add null...)
+
+			printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
 
 			//remove first word from our source Line and store in tempSourceLine so our source line isnt affect for use in intermediate file
 			strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
 
 			//grab INSTRUCTION
-			strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 100);
+			strncpy_s(instruction, 100, getFirstWord(tempSourceLine), 100);
 
 			//remove INSTRUCT
 			strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
 
 			//grab OPERAND
-			strncpy_s(operand, 10, getFirstWord(tempSourceLine), 100);
+			strncpy_s(operand, 100, getFirstWord(tempSourceLine), 100);
 
 			//remove OPERAND
 			strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
 
 			//grab COMMENT
+			printf("comment -%s- | sourcline -%s-\n", comment, tempSourceLine);
 			strncpy_s(comment, 100, tempSourceLine, 100);
-			comment[strlen(comment) - 1] = '\0'; //null terminate comment
+
+			printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
+			printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
 
 			/*
 			//----------begin tokening the line
@@ -340,6 +359,7 @@ void pass1()
 
 			//----------For Writing To Intermediate File
 
+			printf("after preping for intermediate file\n");
 			printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
 			printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
 
@@ -466,28 +486,29 @@ char* getFirstWord(char* codeLine) //this should extract and return the first wo
 	int wordLoc = 0;
 	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine
 	{
-		printf("i is -%i- | our stop is -%i- | we are on char: -%c- ", i, strlen(codeLine), codeLine[i]);
-		if (isspace(codeLine[i])!=0)
+		//printf("i is -%i- | our stop is -%i- | we are on char: -%c- ", i, strlen(codeLine), codeLine[i]);
+		if (isspace(codeLine[i])!=0 || codeLine[i]=='\n' || codeLine[i]=='\0') //these two are in case that our entire line is a stream of characters
 		{
-			printf("is considered a space\n");
+			//printf("is considered a space\n");
 			if (theWord[0] != '\0')
 				break; //we have found our first word
 			//else we are just getting rid of space in the front
 		}
 		else //a char was found so add it to the word
 		{
-			printf("is considered NOT a space\n");
+			//printf("is considered NOT a space\n");
 			theWord[wordLoc] = codeLine[i];
 			wordLoc++;
 		}
 	}
 
-	printf("Before null: %i\n", strlen(theWord));
+	//printf("Before null: %i | -%s-\n", strlen(theWord),theWord);
 
 	//I would have loved to use the number 10 as a paramter... but for the life of me I couldn't find out why it would break when passing an int as a param... it would return a char intead of a word... -_-
-	strcpy_s(theWord, 10, giveNullTerminator(theWord, 10));
+	//---commented out because strcpy_s might add the null termin already... 
+	strcpy_s(theWord, 100, giveNullTerminator(theWord, 100));
 
-	printf("After null: %i\n", strlen(theWord));
+	//printf("After null: %i | -%s-\n", strlen(theWord),theWord);
 
 	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
 
