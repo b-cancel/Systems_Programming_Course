@@ -1,9 +1,8 @@
-﻿  pass1.c
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(189): warning C4020: 'strcpy_s': too many actual parameters
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(485): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(518): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(537): warning C4018: '<': signed/unsigned mismatch
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(549): warning C4047: '=': 'char' differs in levels of indirection from 'char [2]'
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(513): warning C4172: returning address of local variable or temporary: theWord
-c:\users\bryan\documents\github\systemsprogramming\commandlineinterpreter\phase1\pass1.c(562): warning C4172: returning address of local variable or temporary: newCodeLine
-  phase1.vcxproj -> C:\Users\bryan\Documents\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe
+﻿  commandLineInterpreter.c
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(91): warning C4018: '<': signed/unsigned mismatch
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(105): warning C4018: '<': signed/unsigned mismatch
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4047: 'function': 'int' differs in levels of indirection from 'char [100]'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4024: 'dumpCommand': different types for formal and actual parameter 1
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4024: 'dumpCommand': different types for formal and actual parameter 2
+  phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe
+  phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.pdb (Full PDB)

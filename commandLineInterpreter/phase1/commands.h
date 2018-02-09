@@ -1,23 +1,39 @@
 /*
 Programmer: Bryan Cancel
-Date: 10/21/16
+Last Updated: 2-8-18
 
-this hold the prototypes for all the larger commands
+this holds the prototypes for all the larger commands
 and holds the definitions of the smaller commands
+
+NOTE: 
+Assemble in defined elsewhere
 */
 
-#pragma once
-#include "assemble.h"
+//---includes for when we add the phase 2
+//#pragma once
+//#include "assemble.h"
 
-//--- the prototypes that will eventually be left over after I Implement all the Definitions
+//-------------------------PROTOTYPES-------------------------
+
+//----------Not Fully Implemented Prototypes----------
+
 void loadCommand(char* filename);
 void executeCommand();
 void debugCommand();
-void dumpCommand(int start, int end);
+void dumpCommand(int start, int end); //integer base 10 version of the hex digit (if required create a conversion from HEX to DEC and pass here)
 void assembleCommand(char* filename);
 
+//----------Fully Implemented Prototypes----------
 
-//--- the definitions bellow should each be in their own .cpp file(if they are long enough to merit it), I will do this as I implement them little by little
+//FULL dump here
+void helpCommand();
+//FULL assemble here
+void directoryCommand();
+void exitCommand();
+
+//-------------------------MAIN FUNCTIONS-------------------------
+
+//----------Not Fully Implemented Functions----------
 
 void loadCommand(char* filename) {
 	printf("running load command\n");
@@ -35,19 +51,22 @@ void dumpCommand(int start, int end) {
 	printf("running dump command\n");
 }
 
-//-----short implementations that don't merit their own file
+void assembleCommand(char* filename) {
+	printf("running assemble command\n");
+}
+
+//----------Fully Implemented Functions----------
 
 void helpCommand() {
 	printf("running help command\n");
 
 	printf("\n'load filename' - will load the specified file\n");
 	printf("'execute' - will execute the program that was previously loaded in memory\n");
-	printf("'dump start end' - will call the dump function, passing the values of start and end\n");
+	printf("'dump start end' - will call the dump function, with values start and end\n");
 	printf("'help' - will print out a list of available commands\n");
 	printf("'assemble filename' - will assemble an SIC assembly language program into a load module and store it in a file\n");
 	printf("'directory' - will list the files stored in the current directory\n");
 	printf("'exit' - will exit from this simulator\n");
-
 }
 
 void directoryCommand() {
