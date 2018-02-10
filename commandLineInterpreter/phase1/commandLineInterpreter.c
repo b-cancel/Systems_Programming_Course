@@ -75,7 +75,7 @@ int main()
 
 		if (strchr(buffer, '\n') == NULL) //newline not found in current buffer
 		{
-			printf("\nWARNING --- You typed in more than the allowed %i chars per command\nI will truncate the rest of the characters but the command might not work as intended\n", sizeof(buffer));
+			printf("\nWARNING --- You typed in more than the allowed %i chars per command\nI will truncate the rest of the characters but the command might not work as intended\n", (int)sizeof(buffer));
 			//NTS: fgetc moves the "internal stream position indicator" to the next letter after reading the current one
 			while (fgetc(stdin) != '\n'); //discard chars until newline
 		}
@@ -190,7 +190,7 @@ int main()
 				printf("the correct formating is 'dump start end'\n");
 			}
 			else
-				dumpCommand(param1, param2);
+				dumpCommand(1, 1); //TODO eventually switch this out for the actual params
 		}
 		else if (strcmp(command, "help") == 0) {
 			printf("entered \"help\" command\n");
