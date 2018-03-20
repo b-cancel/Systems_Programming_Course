@@ -1,8 +1,5 @@
 ﻿  commandLineInterpreter.c
 d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(91): warning C4018: '<': signed/unsigned mismatch
 d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(105): warning C4018: '<': signed/unsigned mismatch
-d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4047: 'function': 'int' differs in levels of indirection from 'char [100]'
-d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4024: 'dumpCommand': different types for formal and actual parameter 1
-d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(193): warning C4024: 'dumpCommand': different types for formal and actual parameter 2
   phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe
   phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.pdb (Full PDB)

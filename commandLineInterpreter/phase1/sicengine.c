@@ -3,28 +3,6 @@ SIC simulator, version 1.5
 revised 10/27/89
 translated to C  Summer 1994  (David Egle - Univ Texas Pan American)
 
-----------
-
-revised 10/22/16
-removed deprecated calls (Bryan Cancel - student at UTRGV)
-
-fscanf -> fscanf_s (no changes besides name)
-sprintf -> sprintf_s (no changes besides name)
-strcat -> strcat_s (new size param)
-fopen -> fopen_s (now returns a val to indicate an error, AND takes the desired stream to place the file as a parameter)
-strdup -> _strdup (no changes besides name)
-
-NOTE: void GetIR(ADDRESS, char *);
-require a pointer as a parameter, which means its size depends on the machine we are on
-the new version of the deprecated call required a size for this parameter
-I gave it a size of 8 bytes because im working on a 64 bit machine
-and as of now that is the MAX consumer computers have
-this WILL NOT work for machines that work on more than 64 bits
-and MIGHT NOT work for machines with less than 64 bits
-
-NOTE: might have to use "errno_t err;" do detect erros from fopen_s instead of just checking if it return 0 or not
-----------
-
 This version of the SIC simulator includes all SIC/XE instructions
 and capabilities except for the following:
 
@@ -131,7 +109,7 @@ void GetReg(WORD*);
 void PutReg(WORD*);
 ADDRESS GetPC(void);
 void PutPC(ADDRESS);
-void GetIR(ADDRESS, char *); //this might not work, when updating to new non deprecated c... we needed a size value for this pointer... i assumed that machines would be 64 bits MAX so i gave it a value of 8...
+void GetIR(ADDRESS, char *);
 char GetCC(void);
 void SICRun(ADDRESS *, BOOLEAN);
 void SICInit(void);
@@ -273,42 +251,42 @@ void GetIR(ADDRESS Addr, char * Inst)
 	E = Temp >> 4 & 1;
 	switch (Ops[OpCode].FORM) {
 	case 1:                 /* No operands */
-		sprintf_s(Inst, "%6s", Ops[OpCode].OP);
+		sprintf(Inst, "%6s", Ops[OpCode].OP);
 		break;
 	case 2:                 /* Register-Register */
 		R1 = IR[1] >> 4 & 0x7;
 		R2 = IR[1] & 0x7;
-		sprintf_s(Inst, "%6s  %c,%c", Ops[OpCode].OP, REG[R1], REG[R2]);
+		sprintf(Inst, "%6s  %c,%c", Ops[OpCode].OP, REG[R1], REG[R2]);
 		break;
 	case 3:                 /* Format 3 & 4 and SIC */
 		if (N == 0 && I == 0) {         /* SIC */
 			Oper = (IR[1] & 0x7f) * 256 + IR[2];
-			sprintf_s(Inst, "%6s  [%04lx]%s", Ops[OpCode].OP, Oper,
+			sprintf(Inst, "%6s  [%04lx]%s", Ops[OpCode].OP, Oper,
 				(X == 1) ? ",X" : " ");
 			break;
 		}
 		Build[0] = '\0';
 		if (!(N == 1 && I == 1))
 			if (N == 1)
-				strcat_s(Build, 12, "@");
+				strcat(Build, "@");
 			else
-				strcat_s(Build, 12, "#");
+				strcat(Build, "#");
 		if (B == 1)
-			strcat_s(Build, 12, "(B)");
+			strcat(Build, "(B)");
 		if (P == 1)
-			strcat_s(Build, 12, "(PC)");
+			strcat(Build, "(PC)");
 		Oper = (IR[1] & 0xf) * 256 + IR[2];
 		if (E == 1) {                   /* extended form */
 			GetMem(Addr + 3, IR, 0);
 			Oper = Oper * 256 + (IR[0] & 0xff);
-			sprintf_s(Inst, "+%6s  %s%05lx", Ops[OpCode].OP, Build,
+			sprintf(Inst, "+%6s  %s%05lx", Ops[OpCode].OP, Build,
 				Oper);
 		}
 		else
-			sprintf_s(Inst, "%6s  %s%03lx", Ops[OpCode].OP, Build,
+			sprintf(Inst, "%6s  %s%03lx", Ops[OpCode].OP, Build,
 				Oper);
 		if (X == 1)
-			strcat_s(Inst, 8, ",X");
+			strcat(Inst, ",X");
 	}
 }
 
@@ -885,7 +863,7 @@ void CharIO(int opcode, WORD targaddr, BOOLEAN indir, BOOLEAN immed,
 		}
 		if (!ERROR)
 			if (!Init[Devcode]) {
-				if ((fopen_s(&Dev[Devcode], SICFile[Devcode], "r")) != 0) {
+				if ((Dev[Devcode] = fopen(SICFile[Devcode], "r")) == NULL) {
 					printf("cannot open file %s\n", SICFile[Devcode]);
 					exit(1);
 				}
@@ -902,7 +880,7 @@ void CharIO(int opcode, WORD targaddr, BOOLEAN indir, BOOLEAN immed,
 			else
 				if (SICEoln(Dev[Devcode])) {
 					Registers[0][2] = 0;
-					fscanf_s(Dev[Devcode], "%*[^\n]");
+					fscanf(Dev[Devcode], "%*[^\n]");
 					fgetc(Dev[Devcode]);
 				}
 				else {
@@ -926,7 +904,7 @@ void CharIO(int opcode, WORD targaddr, BOOLEAN indir, BOOLEAN immed,
 		}
 		if (!ERROR) {
 			if (!Init[Devcode]) {
-				if ((fopen_s(&Dev[Devcode], SICFile[Devcode], "w")) != 0) {
+				if ((Dev[Devcode] = fopen(SICFile[Devcode], "w")) == NULL) {
 					printf("cannot open file %s\n", SICFile[Devcode]);
 					exit(1);
 				}
@@ -1097,7 +1075,7 @@ void SICStart()
 	BOOLEAN err1;
 
 	err1 = FALSE;
-	if ((fopen_s(&DevBoot, "dev00", "r")) != 0) {
+	if ((DevBoot = fopen("dev00", "r")) == NULL) {
 		printf("cannot open boot file DEV00\n");
 		exit(1);
 	}
@@ -1128,7 +1106,7 @@ void SICStart()
 					Memory[32 * k + i] = 16 * l + r;
 			}
 		if (!feof(DevBoot)) {
-			fscanf_s(DevBoot, "%*[^\n]");
+			fscanf(DevBoot, "%*[^\n]");
 			fgetc(DevBoot);  /* need to grab the CR */
 		}
 	}
@@ -1421,7 +1399,7 @@ void SICInit()
 	long loc;
 
 #if 0
-	if ((fopen_s(&Log, "log", "w")) != 0) {
+	if ((Log = fopen("log", "w")) == NULL) {
 		printf("cannot open file LOG\n");
 		exit(1);
 	}
@@ -1448,20 +1426,20 @@ void SICInit()
 	PC = 0;
 	for (i = 0; i < 3; i++)        /* initialize status word */
 		Status[i] = 0;
-	Msg[0] = _strdup(" ");
-	Msg[1] = _strdup("Division by zero");
-	Msg[2] = _strdup("Integer overflow");
-	Msg[3] = _strdup("Invalid address");
-	Msg[4] = _strdup("Invalid register");
-	Msg[5] = _strdup("Unsupported instruction");
-	Msg[6] = _strdup("Illegal instruction");
-	Msg[7] = _strdup("Illegal addressing mode");
-	Msg[8] = _strdup("Immediate not allowed");
-	Msg[9] = _strdup("Unsupported I/O device");
-	Msg[10] = _strdup("I/O device not ready");
-	Msg[11] = _strdup("Device not open for read");
-	Msg[12] = _strdup("Device not open for write");
-	Msg[13] = _strdup("End of file reached");
+	Msg[0] = strdup(" ");
+	Msg[1] = strdup("Division by zero");
+	Msg[2] = strdup("Integer overflow");
+	Msg[3] = strdup("Invalid address");
+	Msg[4] = strdup("Invalid register");
+	Msg[5] = strdup("Unsupported instruction");
+	Msg[6] = strdup("Illegal instruction");
+	Msg[7] = strdup("Illegal addressing mode");
+	Msg[8] = strdup("Immediate not allowed");
+	Msg[9] = strdup("Unsupported I/O device");
+	Msg[10] = strdup("I/O device not ready");
+	Msg[11] = strdup("Device not open for read");
+	Msg[12] = strdup("Device not open for write");
+	Msg[13] = strdup("End of file reached");
 	for (i = 14; i < 16; i++)
-		Msg[i] = _strdup(" ");
+		Msg[i] = strdup(" ");
 } /* SICInit */

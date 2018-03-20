@@ -75,173 +75,174 @@ int main()
 
 		if (strchr(buffer, '\n') == NULL) //newline not found in current buffer
 		{
-			printf("\nWARNING --- You typed in more than the allowed %i chars per command\nI will truncate the rest of the characters but the command might not work as intended\n", (int)sizeof(buffer));
+			printf("\nERROR --- You typed in more than the allowed %i chars per command\nCOMMAND IGNORED\n\n", (int)sizeof(buffer));
 			//NTS: fgetc moves the "internal stream position indicator" to the next letter after reading the current one
 			while (fgetc(stdin) != '\n'); //discard chars until newline
 		}
-		else
+		else {
 			printf("\n");
 
-		buffer[strlen(buffer) - 1] = '\0'; //confirm our last location contains a null terminator [precaution]
-		
-		//-----make the command case insensitive
+			buffer[strlen(buffer) - 1] = '\0'; //confirm our last location contains a null terminator [precaution]
 
-		//make entire command not case sensitive(all to LOWER)
-		int charID;
-		for (charID = 0; charID < strlen(buffer); charID++)
-			if (buffer[charID] >= 65 && buffer[charID] <= 90) //A -> Z
-				buffer[charID] = buffer[charID] + 32; //toLowerCase
+			//-----make the command case insensitive
 
-		//-----cut up the information we received in the buffer
+			//make entire command not case sensitive(all to LOWER)
+			int charID;
+			for (charID = 0; charID < strlen(buffer); charID++)
+				if (buffer[charID] >= 65 && buffer[charID] <= 90) //A -> Z
+					buffer[charID] = buffer[charID] + 32; //toLowerCase
 
-		//NOTE: this was coded so that you could plug in literally anything inbetween commands except (1) letters and (2) numbers
+			//-----cut up the information we received in the buffer
 
-		//NTS: \0 is not alphanumeric
+			//NOTE: this was coded so that you could plug in literally anything inbetween commands except (1) letters and (2) numbers
 
-		//we use the values of numberOfParams to determine where to place our character
-		//0 command, 1 param1, 2 param2
+			//NTS: \0 is not alphanumeric
 
-		charID = 0;
-		while (charID < strlen(buffer)) //NTS: will not loop over null terminator
-		{
-			numberOfParams++; //becomes 0 for the first command
+			//we use the values of numberOfParams to determine where to place our character
+			//0 command, 1 param1, 2 param2
 
-			if (numberOfParams > 3) {
-				printf("WARNING --- You typed in more than the allowed 2 parameters per command\nI will ignore the parameters but the command might not work as intended\n"); 
-				break;
-			}
-			else {
-				//get rid of anything not alpha numeric
-				while (isalnum(buffer[charID]) == 0 && buffer[charID] != '\0') {
-					charID++;
-				}
+			charID = 0;
+			while (charID < strlen(buffer)) //NTS: will not loop over null terminator
+			{
+				numberOfParams++; //becomes 0 for the first command
 
-				if (buffer[charID] == '\0') {
-					numberOfParams--;
+				if (numberOfParams > 2) { //TODO.... check
+					printf("ERROR --- You typed in more than the allowed 2 parameters per command\nCOMMAND IGNORED\n\n");
 					break;
 				}
+				else {
+					//get rid of anything not alpha numeric
+					while (isalnum(buffer[charID]) == 0 && buffer[charID] != '\0') {
+						charID++;
+					}
 
-				//add anything alpha numeric to our word (eventually we will find something not alpha numeric)
-				while (isalnum(buffer[charID]) != 0 && buffer[charID] != '\0') {
-
-					int currLength;
-					//insert the alpha numeric character into our "param"
-					switch (numberOfParams)
-					{
-					case 0: 
-						currLength = strlen(command);
-						command[currLength] = buffer[charID];
-						command[currLength+1] = '\0';
-						break;
-					case 1: 
-						currLength = strlen(param1);
-						param1[currLength] = buffer[charID];
-						param1[currLength + 1] = '\0';
-						break;
-					default: //case 2
-						currLength = strlen(param2);
-						param2[currLength] = buffer[charID];
-						param2[currLength + 1] = '\0';
+					if (buffer[charID] == '\0') {
+						numberOfParams--;
 						break;
 					}
 
-					charID++;
+					//add anything alpha numeric to our word (eventually we will find something not alpha numeric)
+					while (isalnum(buffer[charID]) != 0 && buffer[charID] != '\0') {
+
+						int currLength;
+						//insert the alpha numeric character into our "param"
+						switch (numberOfParams)
+						{
+						case 0:
+							currLength = strlen(command);
+							command[currLength] = buffer[charID];
+							command[currLength + 1] = '\0';
+							break;
+						case 1:
+							currLength = strlen(param1);
+							param1[currLength] = buffer[charID];
+							param1[currLength + 1] = '\0';
+							break;
+						default: //case 2
+							currLength = strlen(param2);
+							param2[currLength] = buffer[charID];
+							param2[currLength + 1] = '\0';
+							break;
+						}
+
+						charID++;
+					}
+
+					if (buffer[charID] == '\0') {
+						break;
+					}
 				}
+			}
 
-				if (buffer[charID] == '\0') {
-					break;
+			//-----find command and check if we were passed the proper count of params
+
+			if (strcmp(command, "load") == 0) {
+				printf("entered \"load\" command\n");
+				if (numberOfParams != 1) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'load filename'\n");
 				}
+				else
+					loadCommand(param1);
 			}
-		}
-
-		//-----find command and check if we were passed the proper count of params
-
-		if (strcmp(command, "load") == 0) {
-			printf("entered \"load\" command\n");
-			if (numberOfParams != 1){
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'load filename'\n");
+			else if (strcmp(command, "execute") == 0) {
+				printf("entered \"execute\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'execute'\n");
+				}
+				else
+					executeCommand();
 			}
-			else
-				loadCommand(param1);
-		}
-		else if (strcmp(command, "execute") == 0) {
-			printf("entered \"execute\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'execute'\n");
+			else if (strcmp(command, "debug") == 0) {
+				printf("entered \"debug\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'debug'\n");
+				}
+				else
+					debugCommand();
 			}
-			else
-				executeCommand();
-		}
-		else if (strcmp(command, "debug") == 0) {
-			printf("entered \"debug\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'debug'\n");
+			else if (strcmp(command, "dump") == 0) {
+				printf("entered \"dump\" command\n");
+				if (numberOfParams != 2) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'dump start end'\n");
+				}
+				else
+					dumpCommand(1, 1); //TODO eventually switch this out for the actual params
 			}
-			else
-				debugCommand();
-		}
-		else if (strcmp(command, "dump") == 0) {
-			printf("entered \"dump\" command\n");
-			if (numberOfParams != 2) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'dump start end'\n");
+			else if (strcmp(command, "help") == 0) {
+				printf("entered \"help\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'help'\n");
+				}
+				else
+					helpCommand();
 			}
-			else
-				dumpCommand(1, 1); //TODO eventually switch this out for the actual params
-		}
-		else if (strcmp(command, "help") == 0) {
-			printf("entered \"help\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'help'\n");
+			else if (strcmp(command, "assemble") == 0) {
+				printf("entered \"assemble\" command\n");
+				if (numberOfParams != 1) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'assemble filename'\n");
+				}
+				else
+					assembleCommand(param1);
 			}
-			else
-				helpCommand();
-		}
-		else if (strcmp(command, "assemble") == 0) {
-			printf("entered \"assemble\" command\n");
-			if (numberOfParams != 1) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'assemble filename'\n");
+			else if (strcmp(command, "directory") == 0) {
+				printf("entered \"directory\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'directory'\n");
+				}
+				else
+					directoryCommand();
 			}
-			else
-				assembleCommand(param1);
-		}
-		else if (strcmp(command, "directory") == 0) {
-			printf("entered \"directory\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'directory'\n");
+			else if (strcmp(command, "exit") == 0) {
+				printf("entered \"exit\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'exit'\n");
+				}
+				else
+					exitCommand();
 			}
-			else
-				directoryCommand();
-		}
-		else if (strcmp(command, "exit") == 0) {
-			printf("entered \"exit\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'exit'\n");
+			else if (strcmp(command, "clear") == 0) {
+				printf("entered \"clear\" command\n");
+				if (numberOfParams != 0) {
+					printf("ERROR --- you have too few OR too many parameters\n");
+					printf("the correct formating is 'clear'\n");
+				}
+				else
+					clearCommand();
 			}
-			else
-				exitCommand();
-		}
-		else if (strcmp(command, "clear") == 0) {
-			printf("entered \"clear\" command\n");
-			if (numberOfParams != 0) {
-				printf("you have too few OR too many params TRY AGAIN\n");
-				printf("the correct formating is 'clear'\n");
+			else {
+				printf("Sorry, I don't Recognize this command.\n");
+				printf("Type \"Help\" to view a list of commands along with a breif description\n");
 			}
-			else
-				clearCommand();
+			printf("\n");
 		}
-		else {
-			printf("Sorry, I don't Recognize this command.\n");
-			printf("Type \"Help\" to view a list of commands along with a breif description\n");
-		}
-		printf("\n");
 	}
 
 	return 0;
