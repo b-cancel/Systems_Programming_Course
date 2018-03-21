@@ -1,0 +1,301 @@
+			//TODO have this transition happens once and only once (right now we are constantly checking for the two things below)
+
+			/*
+			these two allow you to have "comments" before START and after END
+			STAGE1(before START) startFound=0; endFound =0
+			STAGE2(after START before END) startFound=1; endFound=0;
+			STAGE3(after END) startFound=1; endFound=1;
+			*/
+			int startFound = 0; // 1 for true; if found then start our regular pass1 process; else consider it a comment (space saving, multiline type)
+			int endFound = 0; // 1 for true; if found the end our regular pass1 process... consider lines a comment (space saving, multiline type); else continue regular pass1 process
+
+			int currentLineToFill = 0; //this keeps track of what line on the in the intermediate file
+
+			char startingAddress = 0;
+			char LOCCTR = 0; //location counter should start at hex version of 0 "0x0"
+
+			char sourceLine[100]; //this keeps track of the line being read in
+			char errors[100] = ""; //this is going to keep track of all the errors (errors separated by a horizontal line '|')
+
+								   /*NOTES ON FGETS: (these really should be in the official documentation but...)
+								   (1) fgets will automatically end destination string with a \0
+								   (2) if a newline is in the last location of the dest. string, it will be replaced by \0... this isnt the case for any other chars... BUT It might happen for other escape sequences (\t, etc)
+								   (3) the max length of strlen(dest. string) is 1 smaller than the actual space you allocated in the dest. because it needs the \0
+								   a.k.a.: the null terminator doesnt not count for strlen(dest. string)
+								   (*) fgets breaks on newline char*/
+
+			while (fgets(sourceLine, 100, ourSourceFile) != NULL) //while end of file HASN'T been reached
+			{
+
+				printf("\n----------\n");
+
+				char tempSourceLine[100] = ""; //here we will store the line as we cut it up because we want to keep the original
+
+											   //----------setup our containers for our formatting: "{label} instruction {operand{,X}} comment"
+				char label[100] = "";
+				char instruction[100] = "";
+				//FORM: operand OR operand,X
+				//we are using 7 chars in case we need to use the leading 0
+				char operand[100] = ""; //(IF LABEL) MUST be (1) alphanumeric chars and (2) start with a letter (IF HEX ADDRESS) if start with a char 'A'-'F' must have a leading 0
+				char comment[100] = "";
+
+				//TODO make this some sort of function... its repeated twice so far in this file
+				//----------make sure line doenst exceed our desired line char size, If so warn the user in intermediate file and empty
+				if (!strchr(sourceLine, '\n'))     //newline not found in current buffer
+				{
+					strcat_s(errors, 100, "line too long-");
+					while (!strchr(tempSourceLine, '\n'))
+					{
+						fgets(tempSourceLine, 100, ourSourceFile);
+						printf("extra sourceline: -%s-\n", tempSourceLine);
+					}
+				}
+				else //remove new line char because we dont need it and it causes formatting issues in the intermediate file
+				{
+					sourceLine[strlen(sourceLine) - 1] = '\0';
+				}
+
+				strcpy_s(tempSourceLine, 100, sourceLine, 100); //we need to cut away the word but we also want to keep the sourceline intact
+																//so we use tempsourceline to cut in and sourceline we keep intact
+
+				printf("our desired sourceline: -%s- of length -%i-\n", sourceLine, strlen(sourceLine));
+
+				//everything up to here works
+
+				//grab the LABEL
+				strncpy_s(label, 100, getFirstWord(sourceLine), 100);
+
+				//TODO fix strane but where label is clipped (not in getfirst word or in add null...)
+
+				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
+
+																															  //remove first word from our source Line and store in tempSourceLine so our source line isnt affect for use in intermediate file
+				strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+
+				//grab INSTRUCTION
+				strncpy_s(instruction, 100, getFirstWord(tempSourceLine), 100);
+
+				//remove INSTRUCT
+				strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+				//grab OPERAND
+				strncpy_s(operand, 100, getFirstWord(tempSourceLine), 100);
+
+				//remove OPERAND
+				strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+				//grab COMMENT
+				printf("comment -%s- | sourcline -%s-\n", comment, tempSourceLine);
+				strncpy_s(comment, 100, tempSourceLine, 100);
+
+				printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
+				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
+
+																															  /*
+																															  //----------begin tokening the line
+																															  if (startFound == 0) //if START directive NOT yet found... try to find it
+																															  {
+																															  printf("BEFORE START \n");
+
+																															  //grab LABEL
+																															  strncpy_s(label, 10, getFirstWord(sourceLine), 100);
+
+																															  //remove first word from our sourceLine and store in tempSourceLine so our source line isnt affected for use in intermediate file
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+
+																															  //grab INSTRUCTION
+																															  strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 100);
+
+																															  if (strcmp(instruction, "START")==0) //if we have NOW found START directive
+																															  {
+																															  printf("START HAS BEN FOUND!\n");
+
+																															  //tell the program start has been found
+																															  startFound = 1;
+
+																															  //remove INSTRUCT
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+																															  //grab OPERAND
+																															  strncpy_s(operand, 10, getFirstWord(tempSourceLine), 100);
+																															  //printf("operand length:  %i \n", strlen(operand));
+
+																															  //remove OPERAND
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+																															  //grab COMMENT
+																															  strncpy_s(comment, 100, tempSourceLine, 100);
+																															  comment[strlen(comment) - 1] = '\0'; //null terminate comment
+
+																															  //save #{Operand} as starting address
+																															  startingAddress = operand;
+
+																															  //initialize LOCCTR to starting address
+																															  LOCCTR = startingAddress;
+																															  }
+																															  //else we are working with a implied comment before START
+																															  //TODO make sure to take care of this after wards
+
+																															  printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
+																															  printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
+
+																															  }
+																															  else if(endFound == 0) //if between START and END directive
+																															  {
+																															  printf("AFTER START \n");
+
+																															  if (sourceLine[0] != '.') //if we are not on a comment line
+																															  {
+																															  //----------split up the line
+
+																															  if (isspace(sourceLine[0]) == 0) //we have a LABEL
+																															  {
+																															  //grab the LABEL
+																															  strncpy_s(label, 10, getFirstWord(sourceLine), 100);
+
+																															  //remove first word from our sourLine and store in tempSourceLine so our source line isnt affect for use in intermediate file
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(sourceLine), 100);
+
+																															  //search Symbol Table for Label
+
+																															  //if Found then set ERROR - duplicate label
+																															  //else inser (Label, LOCCTR) into Symbo Table
+																															  }
+
+																															  //grab INSTRUCTION
+																															  strncpy_s(instruction, 10, getFirstWord(tempSourceLine), 100);
+
+																															  //remove INSTRUCT
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+																															  //grab OPERAND
+																															  strncpy_s(operand, 10, getFirstWord(tempSourceLine), 100);
+
+																															  //remove OPERAND
+																															  strncpy_s(tempSourceLine, 100, removeFirstWord(tempSourceLine), 100);
+
+																															  //grab COMMENT
+																															  strncpy_s(comment, 100, tempSourceLine, 100);
+																															  comment[strlen(comment) - 1] = '\0'; //null terminate comment
+
+																															  //----------decide what to do with opcode
+
+																															  if (instruction == 0) //If the instruction is in the opcode table
+																															  {
+																															  //add 3 to the location counter LOCCTR
+
+																															  //replace opcode with hex equivalent
+																															  }
+																															  else //if we are looking at a directive
+																															  {
+																															  if (strcmp(instruction, "END") == 0) //if we have NOW found the END directive
+																															  {
+																															  endFound == 1;
+																															  }
+																															  else if (strcmp(instruction, "WORD") == 0)
+																															  {
+																															  //add 3 to LOCCTR
+																															  }
+																															  else if (strcmp(instruction, "RESB") == 0)
+																															  {
+																															  //add #[Operand] to LOCCTR
+																															  }
+																															  else if (strcmp(instruction, "RESW") == 0)
+																															  {
+																															  //add 3*#[Operand] to LOCCTR
+																															  }
+																															  else if (strcmp(instruction, "BYTE") == 0)
+																															  {
+																															  //find length of constants in bytes
+																															  //add length to LOCCTR
+																															  }
+																															  else
+																															  {
+																															  //set error flag because the instruction isnt an opcode and insnt a directive
+
+																															  if (strcmp(instruction, "START") == 0)
+																															  strcat_s(errors, 100, "# of START dir > 1-");
+																															  else
+																															  strcat_s(errors, 100, "Opcode/Directive not recognized-");
+																															  }
+																															  }
+																															  }
+																															  //else we would be looking at a comment
+																															  }
+																															  //else we have found an implied comment after END
+																															  */
+
+
+																															  //----------For Writing To Intermediate File
+
+				printf("after preping for intermediate file\n");
+				printf("LABEL: -%i- | INSTRUCT -%i- | OPERAND -%i- | COMMENT -%i- \n", strlen(label), strlen(instruction), strlen(operand), strlen(comment)); //for debuging
+				printf("LABEL: -%s- | INSTRUCT -%s- | OPERAND -%s- | COMMENT -%s- \n", label, instruction, operand, comment); //for debuging
+
+																															  /*
+																															  if ( (startFound == 1 && endFound == 0) && sourceLine[0]!='.') //only write the five fields if we are within the assembly portion of the file
+																															  {
+																															  //make sure current line we are on is a line of base 5 (FIRST 5: (1,2,3,4,5) | (6,7,8,9,10) | (11,12,13,14,15)
+																															  if (((currentLineToFill - 1) % 5) != 0) //if we aren't on the appropriate line... we adjust
+																															  {
+																															  //ex: if number is 9
+																															  int extra = (5 - (currentLineToFill % 5)); //(5-4) = 1
+																															  for (extra; extra > 0; extra-=1)
+																															  {
+																															  fprintf_s(ourIntermediateFile, "-----free space to keep formatting-----\n");
+																															  }
+																															  currentLineToFill += extra + 1; // 9 + extra(1) = 9+1 = 10 + 1 = 11 a.k.a. good spot to place new data
+																															  }
+
+																															  //write source line
+																															  fprintf_s(ourIntermediateFile, "Source: %s\n",sourceLine);
+
+																															  //write value of location counter
+																															  fprintf_s(ourIntermediateFile, "LOCCTR: %i\n",LOCCTR);
+
+																															  //write values of mneumonics (since they had to be looked up)
+																															  fprintf_s(ourIntermediateFile, "Opcode: %s\n",instruction);
+
+																															  //write values of operands since we had to get them (dont separate things between commas)
+																															  fprintf_s(ourIntermediateFile, "Operand: %s\n",operand);
+
+																															  //error messages if any - otherwise blank line
+																															  fprintf_s(ourIntermediateFile, "Erros:  %s\n", errors);
+
+																															  }
+																															  else //we are working with a comment before START or after END
+																															  {
+																															  //if it doesnt have the comment indicator then give it the comment indicator
+																															  if (sourceLine[0] != '.')
+																															  {
+																															  char temp[100] = ".";
+																															  strcat_s(temp, 100, sourceLine);
+																															  temp[strlen(temp) - 1] = '\0'; //add null terminator
+																															  strncpy_s(sourceLine, 100, temp, 100);
+																															  }
+
+																															  fprintf_s(ourIntermediateFile, "%s\n", sourceLine);
+
+																															  currentLineToFill++;
+																															  }
+																															  */
+
+																															  //---For Debuging sake
+
+																															  //write source line
+				fprintf_s(ourIntermediateFile, "Source: %s\n", sourceLine);
+
+				//write value of location counter
+				fprintf_s(ourIntermediateFile, "LOCCTR: %i\n", LOCCTR);
+
+				//write values of mneumonics (since they had to be looked up)
+				fprintf_s(ourIntermediateFile, "Opcode: %s\n", instruction);
+
+				//write values of operands since we had to get them (dont separate things between commas)
+				fprintf_s(ourIntermediateFile, "Operand: %s\n", operand);
+
+				//error messages if any - otherwise blank line
+				fprintf_s(ourIntermediateFile, "Erros:  %s\n", errors);
+
+				//-----for debugging sake
+			}

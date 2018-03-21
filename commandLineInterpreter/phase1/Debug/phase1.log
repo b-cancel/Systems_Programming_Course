@@ -1,5 +1,93 @@
-﻿  commandLineInterpreter.c
-d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(91): warning C4018: '<': signed/unsigned mismatch
-d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(105): warning C4018: '<': signed/unsigned mismatch
-  phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.exe
-  phase1.vcxproj -> D:\GitHub\systemsProgramming\commandLineInterpreter\Debug\commandLineInterpreter.pdb (Full PDB)
+﻿  sicengine.c
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(254): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(259): warning C4477: 'sprintf' : format string '%c' requires an argument of type 'int', but variadic argument 2 has type 'char *'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(259): warning C4477: 'sprintf' : format string '%c' requires an argument of type 'int', but variadic argument 3 has type 'char *'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(259): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(264): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(271): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(273): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(275): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(277): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(282): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(286): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(289): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(395): warning C4101: 'j': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(749): warning C4244: '=': conversion from 'ADDRESS' to 'BYTE', possible loss of data
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(765): warning C4101: 'result': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(764): warning C4101: 'i': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(866): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(883): error C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1193): note: see declaration of 'fscanf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(907): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(990): warning C4101: 'i': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1078): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1109): error C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1193): note: see declaration of 'fscanf'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1186): warning C4554: '&': check operator precedence for possible error; use parentheses to clarify precedence
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1190): warning C4554: '&': check operator precedence for possible error; use parentheses to clarify precedence
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1285): warning C4101: 'i': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1285): warning C4101: 'modes': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1285): warning C4101: 'flags': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1368): warning C4101: 'fmt1': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1368): warning C4101: 'fmt4': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1366): warning C4101: 'disp': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1363): warning C4101: 'i': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1368): warning C4101: 'fmt3': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1368): warning C4101: 'fmt2': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1366): warning C4101: 'addr': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1429): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1430): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1431): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1432): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1433): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1434): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1435): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1436): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1437): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1438): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1439): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1440): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1441): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1442): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\sicengine.c(1444): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'
+  commandLineInterpreter.c
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(79): warning C4013: 'getline' undefined; assuming extern returning int
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(90): warning C4129: ',': unrecognized character escape sequence
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(65): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(69): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(60): warning C4101: 'ourSymbolTableFile': unreferenced local variable
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(141): warning C4033: 'processFirst' must return a value
+d:\github\systemsprogramming\commandlineinterpreter\phase1\pass1.h(177): warning C4047: 'return': 'char *' differs in levels of indirection from 'int'
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(93): warning C4018: '<': signed/unsigned mismatch
+d:\github\systemsprogramming\commandlineinterpreter\phase1\commandlineinterpreter.c(107): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...

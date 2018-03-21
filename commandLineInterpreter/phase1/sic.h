@@ -1,4 +1,3 @@
-
 /* Define a few constants */
 #define TRUE    1                       /* Boolean constants */
 #define FALSE   0

@@ -34,6 +34,8 @@ I am using this because its my first time using C
 //NTS: avoid including .c file beause the linker will merge the obj files resulting from the compilation of each of the .c files
 //NTS: this is because every .c file get its own .obj file
 #include "commands.h"
+#include "pass1.h"
+//#include "pass1.h" //include for phase 2 of 2 pass assembler
 
 //prototypes
 void clearStrings();
@@ -111,8 +113,8 @@ int main()
 					break;
 				}
 				else {
-					//get rid of anything not alpha numeric
-					while (isalnum(buffer[charID]) == 0 && buffer[charID] != '\0') {
+					//get rid of anything that is a space
+					while (isspace(buffer[charID]) != 0 && buffer[charID] != '\0') {
 						charID++;
 					}
 
@@ -121,8 +123,8 @@ int main()
 						break;
 					}
 
-					//add anything alpha numeric to our word (eventually we will find something not alpha numeric)
-					while (isalnum(buffer[charID]) != 0 && buffer[charID] != '\0') {
+					//add anything that isnt a space to our word
+					while (isspace(buffer[charID]) == 0 && buffer[charID] != '\0') {
 
 						int currLength;
 						//insert the alpha numeric character into our "param"

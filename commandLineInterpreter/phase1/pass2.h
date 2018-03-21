@@ -1,5 +1,5 @@
 /*
-this will create the 
+this will create the
 
 -listing file
 -object file
@@ -10,6 +10,9 @@ by:
 3. processing remaining assembler directives
 4. writing maching code to both files
 */
+
+#pragma once
+
 void pass2()
 {
 	printf("pass 2 is being called magically because we have its protoype in assemble.h already \n");
@@ -28,10 +31,10 @@ void pass2()
 	-Format varies according to designer
 	-Usually read by a linker/loader program
 	-Several record types (this also can vary)
-		-header record
-		-linkage records
-		-code records
-		-end record
+	-header record
+	-linkage records
+	-code records
+	-end record
 	*/
 
 	//TODO figure out what to do with linkage records...

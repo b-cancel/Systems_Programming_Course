@@ -1,0 +1,200 @@
+/*
+the symbol table we are creating should include (best organized as a dynamic hash table)
+-symbol
+-associated value (usually and address)
+
+May also include (not really needed, so im not really adding these)
+*type
+*length
+*scope info
+*/
+
+/*
+the intermediate file we are creating should include
+-copy of source line
+-value of location counter
+-values of mnemonics used (since they had to be looked up)
+-operands since we had to get them (With a space between each... or...?)
+-error messages(better to save these as codes for easy look up later in pass 2)
+
+May also include (not really needed, so im not really adding these)
+*pointers to OPTAB
+*pointer to SYMTAB
+*/
+
+char* getFirstWord(char* codeLine); //this should extract and return the first word for codeline
+char* removeFirstWord(char* codeLine); //this should remove the first word from codeline and return codeline
+char* giveNullTerminator(char* word, int len);
+
+//NOTE: I CHALLENGE YOU TO ADD AN INT PARAM TO THIS... so that the 10 passsed to the giveNullTerminator can be a variable... good luck... please give me a call if you succeed...
+char* getFirstWord(char* codeLine) //this should extract and return the first word for codeline
+{
+	char theWord[100] = "";
+
+	int i = 0;
+	int wordLoc = 0;
+	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine
+	{
+		//printf("i is -%i- | our stop is -%i- | we are on char: -%c- ", i, strlen(codeLine), codeLine[i]);
+		if (isspace(codeLine[i])!=0 || codeLine[i]=='\n' || codeLine[i]=='\0') //these two are in case that our entire line is a stream of characters
+		{
+			//printf("is considered a space\n");
+			if (theWord[0] != '\0')
+				break; //we have found our first word
+			//else we are just getting rid of space in the front
+		}
+		else //a char was found so add it to the word
+		{
+			//printf("is considered NOT a space\n");
+			theWord[wordLoc] = codeLine[i];
+			wordLoc++;
+		}
+	}
+
+	//printf("Before null: %i | -%s-\n", strlen(theWord),theWord);
+
+	//I would have loved to use the number 10 as a paramter... but for the life of me I couldn't find out why it would break when passing an int as a param... it would return a char intead of a word... -_-
+	//---commented out because strcpy_s might add the null termin already... 
+	strcpy_s(theWord, 100, giveNullTerminator(theWord, 100));
+
+	//printf("After null: %i | -%s-\n", strlen(theWord),theWord);
+
+	//NOTE: this may or may not have a null terminating char... we will have to give it its null terminator afterwards
+
+	return theWord;
+}
+
+char* giveNullTerminator(char* word, int len)
+{
+	if (strlen(word) < len)
+	{
+		word[strlen(word)] = '\0';
+	}
+	else //if all avail space for the wordToCheck are filled... we still need our null terminator
+	{
+		word[strlen(word) - 1] = '\0'; //will remove a character but we need our null terminator
+	}
+
+	return word;
+}
+
+char* removeFirstWord(char* codeLine) //this should remove the first word from codeline and return codeline
+{
+	char newCodeLine[100] = "";
+	int charsToRemove = 0;
+	char temp[100] = "";
+
+	int i = 0;
+	for (i; i < strlen(codeLine); i += 1) //loop through the codeLine till the end of the first word
+	{
+		if (isspace(codeLine[i]) != 0)
+		{
+			if (temp[0] != '\0')
+				break; //we have found our first word
+			else
+				charsToRemove+=1;//else we are just getting rid of space in the front
+		}
+		else //a char was found so add it to the word
+		{
+			charsToRemove+=1;
+			temp[0] = ".";
+		}
+	}
+
+	int nCLloc = 0;
+	int loopStoper = strlen(codeLine); 
+	for (charsToRemove, nCLloc; charsToRemove < loopStoper; charsToRemove += 1, nCLloc++) //loop through the codeLine till the end of the first word
+	{
+		newCodeLine[nCLloc] = codeLine[charsToRemove];
+	}
+
+	//the original line should already have an null terminator so we dont need to add one
+
+	return newCodeLine;
+}
+
+Something I assume
+(1) that a linkage records in the object file don't exist because I wasnt able to find any mention of it anywhere... not even on the web...
+
+/*
+NOTES on SIC Machine Architecture (NOT SIC/XE)
+
+Memory
+	memory - 8 bytes
+	word - 3 bytes
+	size 2^15 = 32,768 bytes of memory AT MOST
+	address: byte or lowest numbered byte in a word... TODO... this means...?
+
+Data Format
+	integer: words 2's comp
+	character: byte, ASCII rep
+
+Regs
+	A - 0 - Accumulator
+	X - 1 - Index Reg
+	L - 2 - Linkage Reg
+	PC - 8 - Program Counter
+	SW - 9 Status word
+
+Instruct Format (a word)
+	opcode - 8 bits
+	index bit - 1 bit
+	address - 15 bits
+
+Addressing Mode
+	Direct: index bit = 0, TA = address
+	Indexed: index bit = 1, TA = address + (X)
+
+25 Instructions
+
+Input and Output happens to/from rightmost byte of reg A --- 1 byte at a time --- each device is assigned an 8 bit code
+
+Some Directive aka psuedo-ops
+START
+END
+BYTE
+WORD
+RESB
+RESW
+
+OTHER NOTES FROM WIKI
+stores most memory addresses hexadecimal integer format... TODO... this means???
+stores all data in binary, and uses the two's complement to represent negative values at the machine level
+Memory storage in SIC consists of 8-bit bytes, and all memory addresses in SIC are byte addresses. 
+Any three consecutive bytes form a 24-bit 'word' value, addressed by the location of the lowest numbered byte in the word value. 
+Numeric values are stored as word values, and 
+character values use the 8-bit ASCII system
+*/
+
+void printSymbolTableFile();
+void printSymbolTableFile()
+{
+	//open symbol table file
+	FILE *symtab;
+
+	//if successfully opened symbol table file
+	if (fopen_s(&symtab, "./symtab.txt", "r") == 0)
+	{
+		char symtabLine[100]="";
+
+		while (fgets(symtabLine, 100, symtab) != NULL) //as long as eof isnt reached
+		{
+			
+			if (!strchr(symtabLine, '\n'))     //if newline not found - we need to clip line
+			{
+				while (fgetc(symtab) != '\n' && !feof(symtab)) {};	//discard chars until newline
+			}
+			//this will not crash for lines that do not overflow because those lines will have a \n as a last char which we then replace for \0
+			symtabLine[strlen(symtabLine)-1] = '\0'; //set null terminator
+
+			printf("%s-\n", symtabLine);
+		}
+	}
+	else
+	{
+		printf("there was an error when trying to print the symbol table");
+	}
+
+	//close symbol table file
+	fclose(symtab);
+}

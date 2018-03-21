@@ -10,8 +10,8 @@ Assemble in defined elsewhere
 */
 
 //---includes for when we add the phase 2
-//#pragma once
-//#include "assemble.h"
+#pragma once
+#include "pass1.h"
 
 //-------------------------PROTOTYPES-------------------------
 
@@ -25,9 +25,9 @@ void assembleCommand(char* filename);
 
 //----------Fully Implemented Prototypes----------
 
-//FULL dump here
+//FILL dump here
 void helpCommand();
-//FULL assemble here
+void assembleCommand(char* filename);
 void directoryCommand();
 void exitCommand();
 
@@ -51,10 +51,6 @@ void dumpCommand(int start, int end) {
 	printf("running dump command\n");
 }
 
-void assembleCommand(char* filename) {
-	printf("running assemble command\n");
-}
-
 //----------Fully Implemented Functions----------
 
 void helpCommand() {
@@ -69,11 +65,20 @@ void helpCommand() {
 	printf("'exit' - will exit from this simulator\n");
 }
 
+void assembleCommand(char* filename) {
+
+	printf("running assemble command\n");
+
+	pass1(filename); //seperate proc for pass 1 to create symbol table and intermediate file
+	//pass2(); //seperate proc for pass 2 to create object file and listing file
+}
+
 void directoryCommand() {
 
 	printf("running directory command\n");
 
-	system("ls -l");
+	system("ls -l"); //for running within command line in linux/unix
+	system("dir"); //for running within command line in windows
 }
 
 void exitCommand() {
