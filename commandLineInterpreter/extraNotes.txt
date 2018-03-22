@@ -22,17 +22,15 @@
 
 		//NOTE: LOCCTR (aka location counter) is in hex
 		//as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
+
+		//start missing or op missing or not hex... error
+		//for start put in location counter after processing file
 */
 
 /*
 the symbol table we are creating should include (best organized as a dynamic hash table)
 -symbol
--associated value (usually and address)
-
-May also include (not really needed, so im not really adding these)
-*type
-*length
-*scope info
+-associated value (usually an address)
 */
 
 /*
