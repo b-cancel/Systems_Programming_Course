@@ -32,7 +32,7 @@ RLOOP   TD      INPUT              TEST INPUT DEVICE
        STCH    BUFFER,X     STORE CHARCTER IN BUFFER
        TIX     MAXLEN              LOOP UNLESS MAX LENGTH
        JLT     RLOOP          HAS BEEN REACHED
-EXIT    STX     LENGTH             SAVE RECORD LENGTH
+EXIT    STX     LENGTH             SAVE RECORD LENGTH          
        RSUB                    RETURN TO CALLER
 INPUT   BYTE    X'F1'              CODE FOR INPUT DEVICE
 MAXLEN WORD   4096
