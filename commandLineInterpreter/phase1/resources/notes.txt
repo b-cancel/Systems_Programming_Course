@@ -1,42 +1,12 @@
-//----------------------------------------------------------------------------------------------------TODO
-
-----------NOTES----------
 *COPY is the Label of the program
 *The only restriction is that there must be at least one space or tab separating each field present. 
 	*The only exception is if indexing is requested -- don't put a space between the comma and the X.
 		*EX: """BUFFER,X"""
-
-----------GENERAL----------
-*Illegal Operand
-	*operand not in form (operand) or (operand,x)
-	*operand not a
-		*a symbol that is used as a label in the source program
-		*a hex address
-			* if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
-
-----------DETAIL----------
----Operand Errors
-*Missing or Illegal operand on data storage directive
-*Missing or Illegal operand on START directive
-*Missing or Illegal operand on END directive (dont need to check if symbol is defined)
-*operands must meet their requirements for their paricular opcode
----Other Errors
-*Program Too Long (larger than 32,768 bytes of memory or 7FFFh) [bigger than 32K]
-*finding another START Directive
-*the BYTE directive may take two types of operands
-	*regular string (c'...')
-		*max length is 30 characters
-	*hex string (x'...')
-		*max length of hex string is 16 bytes (32 hex digits)
-			*the number of hex digits must be even (DONT FORCE???)
-*for start put in location counter after processing file
-*Instruction operands must be of the form operand or operand,X , where operand is either a symbol that is used as a label in the source program, or an actual hexadecimal address. Hexadecimal addresses that would begin with 'A' through 'F', must have a leading '0' to distinguish them from labels.
-*Ignore anything above START or END
 *Order of Command in Assembly is (Label|Operation|Operand|Comments)
-	{label}operation {operand{,X}} {comment}
+	{label} operation {operand{,X}} {comment}
 		-items in curly braces are optional
-
-//----------------------------------------------------------------------------------------------------DONE
+-----
+*Ignore anything above START or END
 *the system is not case sensitive
 *Illegal Label (IF)
 	-larger than 6 alphanumeric chars
@@ -51,11 +21,29 @@
 *Illegal Operation
 	*cannot be found in the op table
 *Too many symbols in source program (500 symbols max)
-
-//---next
+*comments go in intermediate file with alot of white space (just like line with just a label)
 *LOCCTR (aka location counter) is in hex
 	*as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
-
+*save #{OPERAND} as starting address
+	*initialize LOCCTR to starting address
+*finding another START Directive
+*the BYTE directive may take two types of operands
+	*regular string (c'...')
+		*max length is 30 characters
+	*hex string (x'...')
+		*max length of hex string is 16 bytes (32 hex digits)
+			*the number of hex digits must be even
+*Missing or Illegal operand on data storage directive
+*Missing or Illegal operand on START directive
+*Missing or Illegal operand on END directive (dont need to check if symbol is defined)
+*Illegal Operand
+	*operand not in form (operand) or (operand,x)
+	*operand not a
+		*a symbol that is used as a label in the source program
+		*a hex address
+			* if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
+*Program Too Long (larger than 32,768 bytes of memory or 7FFFh) [bigger than 32K]
+*Instruction operands must be of the form operand or operand,X , where operand is either a symbol that is used as a label in the source program, or an actual hexadecimal address. Hexadecimal addresses that would begin with 'A' through 'F', must have a leading '0' to distinguish them from labels.
 
 //----------------------------------------------------------------------------------------------------
 
