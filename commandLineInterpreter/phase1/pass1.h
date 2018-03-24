@@ -30,11 +30,11 @@ I am Assuming:
 	-and a line with just a LABEL must still increment the LOCCTR (otherwise you might reference an undesired label)
 (5) we dont have to process our LABELS until pass 2 (eventhough we can technically process the ones that are backwards references)
 (6) operands that are HEX values... ONLY has to have an even length
+(7) start and end dont add to the location counter
 */
 
 //TODO list (must)
 //1. remove limit MAX_CHARS_PER_WORD
-//2. repair strange error where even after clipping spaces from my line it still has a newline character when i print (except the last line)
 
 //TODO list (maybe)
 //1. to the symbol table add (scope info, type[of what?], length[of what?])
@@ -44,6 +44,7 @@ I am Assuming:
 //5. improve "removeSpacesBack" to also remove the newline character [it should be doing this now but my prints indicate it isnt]
 
 #pragma once
+
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
@@ -126,7 +127,7 @@ void pass1(char* filename)
 	int programLength = 0; //require for the begining of pass 2
 
 	//place INTERMEDIATE in stream, mae sure INTERMEDIATE file opens for writing properly
-	FILE *ourIntermediateFile = fopen("./intermediate.txt", "w");
+	FILE *ourIntermediateFile = fopen("./intermediate.txt", "w"); //wipes out the file
 	if (ourIntermediateFile != NULL) 
 	{
 		//place SOURCE in stream, make sure SOURCE file opens for reading properly
@@ -192,9 +193,15 @@ void pass1(char* filename)
 
 						if (line[0] == '.')
 						{
-							printf("1: '%s'", origLine); //[1]
-							printf("2: '%x'\n", LOCCTR); //[2]
-							printf("3: \n4: \n5: \n6: \n7: \n"); //[3] -> [7]
+							/*
+							fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
+							fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR)
+							fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
+							fputs("\n", ourIntermediateFile); //[\n]
+							*/
+							printf(strcat(origLine, "\n")); //[1]
+							//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR)
+							printf("\n\n\n\n\n"); //[3] -> [7]
 							printf("-----8: -\n"); //[\n]
 						}
 						else
@@ -234,12 +241,22 @@ void pass1(char* filename)
 							if (line[0] == '\0')
 							{
 								locctrAddition += 3; //add to the location counter
-								printf("1: '%s", origLine); //[1]
-								printf("2: '%x'\n", LOCCTR); //[2]
-								printf("3: '%s'", label); //[3]
-								printf("4: '%s'", errors); //[4]
-								printf("5: \n6: \n7: \n"); //[5] -> [7]
-								printf("-----8: -\n"); //[\n]
+								
+								/*
+								fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
+								fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR)
+								fputs(strcat(label, "\n"), ourIntermediateFile); //[3]
+								fputs(strcat(errors, "\n"), ourIntermediateFile); //[4]
+								fputs("\n\n\n", ourIntermediateFile); //[5] -> [7]
+								fputs("\n", ourIntermediateFile); //[\n]
+								*/
+
+								printf(strcat(origLine, "\n")); //[1]
+								//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR)
+								printf(strcat(label, "\n")); //[3]
+								printf(strcat(errors, "\n")); //[4]
+								printf("\n\n\n"); //[5] -> [7]
+								printf("\n"); //[\n]
 							}
 							else //we have an mneumonic but is it valid?
 							{
@@ -364,7 +381,7 @@ void pass1(char* filename)
 												{
 													subStringRef(&operand, 2, strlen(operand) - 3); // the three values are C, ', and '
 
-																									//max of 30 characters
+													//max of 30 characters
 													if (strlen(operand) <= 30)
 														locctrAddition = strlen(operand); //add the length of this to LOCCTR
 													else
@@ -435,25 +452,33 @@ void pass1(char* filename)
 									}
 								}
 
-								int tempProLoc = (LOCCTR - locctrAddition);
-
 								LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
-								if (tempProLoc > MAX_PROGRAM_SIZE)
+
+								if ((LOCCTR - startingAddress) > MAX_PROGRAM_SIZE)
 									strcat(errors, "x900x"); //program is too long
 
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 								
-								printf("1: '%sWORK PLZ", origLine); //[1]
+								/*
+								fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
+								fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
+								fputs(strcat(label, "\n"), ourIntermediateFile); //[3]
+								fputs(strcat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
+								fputs(strcat(operand, "\n"), ourIntermediateFile); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+								fputs(strcat(comment, "\n"), ourIntermediateFile); //[6]
+								fputs(strcat(errors, "\n"), ourIntermediateFile); //[7]
+								fputs("\n", ourIntermediateFile); //[\n]
+								*/
 
-								printf("2: '%x'\n", tempProLoc); //[2]
-								printf("3: '%s'\n", label); //[3]
-								printf("4: '%s'\n", mneumonicCode); //[4]
-															   //NOTE: everything except operation RSUB has 1 operand (with different qualifications)
-								printf("5: '%s'\n", operand); //[5] (if we had operation -or- a mneumonic this is also taken care of)
-								comment = processRest(&line);
-								printf("6: '%s'\n", comment); //[6]
-								printf("7: '%s'\n",errors); //[7]
-								printf("-----8: -\n"); //[\n]
+								printf(strcat(origLine, "\n")); //[1]
+								//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR - locctrAddition)
+								printf(strcat(label, "\n")); //[3]
+								printf(strcat(mneumonicCode, "\n")); //[4]
+								printf(strcat(operand, "\n")); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+								//comment = processRest(&line);
+								//printf(strcat(comment, "\n")); //[6]
+								//printf(strcat(errors, "\n")); //[7]
+								printf("\n"); //[\n]
 							}
 						}
 						//ELSE... we dont write this line to the intermediate file
@@ -466,15 +491,15 @@ void pass1(char* filename)
 
 				//if we stopeed reading the file because END was found
 				if (endFound == 0)
-					printf("1: \n2: \n3: \n4: \n5: \n6: \n7: Errors: x020x\n-----8: -\n"); //SPECIAL ERROR [8 lines] (no end directive)
+					fputs("\n\n\n\n\n\nErrors: x020x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (no end directive)
 			}
 			else
-				printf("1: \n2: \n3: \n4: \n5: \n6: \n7: Errors: x010x\n-----8: -\n"); //SPECIAL ERROR [8 lines] (no start directive)
+				fputs("\n\n\n\n\n\nErrors: x010x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (no start directive)
 
 			fclose(ourSourceFile); //close our source file after reading it
 		}
 		else //SOURCE did not open properly
-			printf("1: \n2: \n3: \n4: \n5: \n6: \n7: Errors: x000x\n-----8: -\n"); //SPECIAL ERROR [8 lines] (source did not open)
+			fputs("\n\n\n\n\n\nErrors: x000x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (source did not open)
 
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
@@ -629,7 +654,7 @@ char* subString(char* src, int srcIndex, int strLength) {
 		srcI++;
 	}
 
-	int nullTermIndex = min(strlen(src) - 1, destI);
+	int nullTermIndex = min(strlen(src) - 2, destI);
 	dest[nullTermIndex] = '\0';
 
 	return dest;
@@ -649,7 +674,7 @@ void subStringRef(char** source, int srcIndex, int strLength) { //pass src by re
 		srcI++;
 	}
 
-	int nullTermIndex = min(strlen(src) - 1, destI);
+	int nullTermIndex = min(strlen(src) - 2, destI);
 	src[nullTermIndex] = '\0';
 }
 
