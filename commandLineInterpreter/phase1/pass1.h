@@ -22,6 +22,9 @@ Deliverable:
 5. @toplevel/3334/phase2
 with only source files in said folder
 
+NOTE:
+itoa() doesn't work in unix/linux server (atoi works)
+
 I am Assuming:
 (1) Everything in "TODO list (maybe)" below is not a requirement
 (2) (a) intermediate file (b) listing file (c) object file -> Dont Require a Specific File Extension (using .txt)
@@ -45,7 +48,6 @@ I am Assuming:
 
 #pragma once
 
-
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
 //constants that will eventually be used throughout code
@@ -65,9 +67,12 @@ I am Assuming:
 //library includes
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <assert.h>
+
+//---integer to string
+char* reverse(char* str, int length);
+char* itoa(int num, char* str, int base);
 
 //---other prototypes
 int validLabel(char* label);
@@ -75,6 +80,7 @@ int labelFound(char* line);
 int isDirective(char* mneumonic);
 int isNumber10(char* num);
 int isNumber16(char* num);
+char* strCat(char* startValue, char* addition);
 
 //---prototypes for string processing
 void stringToLower(char** l);
@@ -125,6 +131,10 @@ void pass1(char* filename)
 	printf("running pass 1\n\n");
 
 	int programLength = 0; //require for the begining of pass 2
+
+	//---Debugging Tools
+	int printIntermediateFile = 1; //1 to print, 0 to not print
+	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
 	//place INTERMEDIATE in stream, mae sure INTERMEDIATE file opens for writing properly
 	FILE *ourIntermediateFile = fopen("./intermediate.txt", "w"); //wipes out the file
@@ -179,7 +189,7 @@ void pass1(char* filename)
 				do {
 					
 					char* errors = malloc(MAX_ERROR_CHARACTERS * sizeof(char));
-					errors = "Errors:";
+					errors = "Errors: ";
 
 					stringToLower(&line); //remove case sensitivity
 					char *origLine = malloc(strlen(line) * sizeof(char));
@@ -191,20 +201,7 @@ void pass1(char* filename)
 
 						int locctrAddition = 0;
 
-						if (line[0] == '.')
-						{
-							/*
-							fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
-							fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR)
-							fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
-							fputs("\n", ourIntermediateFile); //[\n]
-							*/
-							printf(strcat(origLine, "\n")); //[1]
-							//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR)
-							printf("\n\n\n\n\n"); //[3] -> [7]
-							printf("-----8: -\n"); //[\n]
-						}
-						else
+						if(line[0] != '.') //we found a command
 						{
 							if (labelFound(line) == 1) //we have a label (but is it valid)
 							{
@@ -218,47 +215,27 @@ void pass1(char* filename)
 									switch (addResult)
 									{
 									case 1: break;
-									case 0: strcat(errors, "x100x"); break; //duplicate label
-									case -1: strcat(errors, "x110x"); break; //symbol tbl full
+									case 0: errors = strCat(errors, "x100x"); break; //duplicate label
+									case -1: errors = strCat(errors, "x110x"); break; //symbol tbl full
 									default: break;
 									}
 									break;
-								case 0: strcat(errors, "x120x"); break; //label starts with digit
-								case -1: strcat(errors, "x130x"); break; //label is too long
+								case 0: errors = strCat(errors, "x120x"); break; //label starts with digit
+								case -1: errors = strCat(errors, "x130x"); break; //label is too long
 								default: break;
 								}
 							}
 							else
 							{
 								//the label field must equal something so we can print it
-								label = malloc(sizeof(char));
-								label = '\0';
+								label = malloc(sizeof(char) * 2);
+								label[0] = ' ';
+								label[1] = '\0';
 							}
-
+							
 							//NOTE: by now we processed the label IF there was one -OR- had an ERROR added to it
 
-							//make sure there are still things to process
-							if (line[0] == '\0')
-							{
-								locctrAddition += 3; //add to the location counter
-								
-								/*
-								fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
-								fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR)
-								fputs(strcat(label, "\n"), ourIntermediateFile); //[3]
-								fputs(strcat(errors, "\n"), ourIntermediateFile); //[4]
-								fputs("\n\n\n", ourIntermediateFile); //[5] -> [7]
-								fputs("\n", ourIntermediateFile); //[\n]
-								*/
-
-								printf(strcat(origLine, "\n")); //[1]
-								//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR)
-								printf(strcat(label, "\n")); //[3]
-								printf(strcat(errors, "\n")); //[4]
-								printf("\n\n\n"); //[5] -> [7]
-								printf("\n"); //[\n]
-							}
-							else //we have an mneumonic but is it valid?
+							if(line[0] != '\0') //we have an mneumonic but is it valid?
 							{
 								mneumonic = processFirst(&line);
 								int result = getOperationIndex(mneumonic);
@@ -275,7 +252,7 @@ void pass1(char* filename)
 									{
 										operand = processFirst(&line); //NOTE: operand assumed to be valid
 										if (operand[0] == '\0')
-											strcat(errors, "x300x"); //missing operand
+											errors = strCat(errors, "x300x"); //missing operand
 										else
 										{
 											int opIsLabel = 0;
@@ -306,11 +283,11 @@ void pass1(char* filename)
 																											//TODO.... process this
 														}
 														else
-															strcat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
+															errors = strCat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
 													}
 												}
 												else
-													strcat(errors, "x320x"); //hex number required but not found
+													errors = strCat(errors, "x320x"); //hex number required but not found
 											}
 											//ELSE... we have already processed the operand as a label
 										}
@@ -318,8 +295,10 @@ void pass1(char* filename)
 									else
 									{
 										//the operand field must equal something so we can print it
-										operand = malloc(sizeof(char));
-										operand = '\0';
+										//the label field must equal something so we can print it
+										operand = malloc(sizeof(char) * 2);
+										operand[0] = ' ';
+										operand[1] = '\0';
 									}
 								}
 								else //check if we have a directive
@@ -333,13 +312,13 @@ void pass1(char* filename)
 										if (strcmp(mneumonic, "start") == 0)
 										{
 											if (startFound > 1)
-												strcat(errors, "x200x"); //extra start directive 
+												errors = strCat(errors, "x200x"); //extra start directive 
 											else //its the first time finding a start directive
 											{
 												startFound++;
 
 												if (operand[0] == '\0')
-													strcat(errors, "x400x"); //missing operand
+													errors = strCat(errors, "x400x"); //missing operand
 												else
 												{
 													if (isNumber10(operand) == 1) //is number
@@ -348,7 +327,7 @@ void pass1(char* filename)
 														LOCCTR = startingAddress; //init LOCCTR to starting address
 													}
 													else
-														strcat(errors, "x410x"); //we require a hex number
+														errors = strCat(errors, "x410x"); //we require a hex number
 												}
 											}
 										}
@@ -357,7 +336,7 @@ void pass1(char* filename)
 											endFound = 1; //stop us from processing any more of this file
 
 											if (operand[0] == '\0')
-												strcat(errors, "x400x"); //missing operand
+												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
 												int labelIndex = getKeyIndexSYMTBL(operand);
@@ -366,7 +345,7 @@ void pass1(char* filename)
 												if (labelIndex != -1)
 													; //read in our label data
 												else
-													strcat(errors, "x402x");  //the label you are referencing does not exist
+													errors = strCat(errors, "x402x");  //the label you are referencing does not exist
 											}
 
 											programLength = (LOCCTR - startingAddress); //save program length
@@ -374,7 +353,7 @@ void pass1(char* filename)
 										else if (strcmp(mneumonic, "byte") == 0)
 										{
 											if (operand[0] == '\0')
-												strcat(errors, "x400x"); //missing operand
+												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
 												if (operand[0] == 'c')
@@ -385,7 +364,7 @@ void pass1(char* filename)
 													if (strlen(operand) <= 30)
 														locctrAddition = strlen(operand); //add the length of this to LOCCTR
 													else
-														strcat(errors, "x403x"); //max of 30 chars
+														errors = strCat(errors, "x403x"); //max of 30 chars
 												}
 												else if (operand[0] == 'x')
 												{
@@ -400,29 +379,29 @@ void pass1(char* filename)
 															if (isNumber16(operand) == 1)
 																locctrAddition = strlen(operand); //add the length of this to LOCCTR
 															else
-																strcat(errors, "x401x"); //must be a hex number 
+																errors = strCat(errors, "x401x"); //must be a hex number 
 														}
 														else
-															strcat(errors, "x404x");  //must be a max of 16 bytes 
+															errors = strCat(errors, "x404x");  //must be a max of 16 bytes 
 													}
 													else
-														strcat(errors, "x405x"); //number must be byte so must have even number of digits 
+														errors = strCat(errors, "x405x"); //number must be byte so must have even number of digits 
 												}
 												else
-													strcat(errors, "x406x"); //you can only pass a string or hex value as the operand to byte 
+													errors = strCat(errors, "x406x"); //you can only pass a string or hex value as the operand to byte 
 											}
 										}
 										else if (strcmp(mneumonic, "word") == 0)
 										{
 											if (operand[0] == '\0')
-												strcat(errors, "x400x"); //missing operand
+												errors = strCat(errors, "x400x"); //missing operand
 
 											locctrAddition += 3;
 										}
 										else if (strcmp(mneumonic, "resb") == 0)
 										{
 											if (operand[0] == '\0')
-												strcat(errors, "x400x"); //missing operand
+												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
 												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
@@ -432,7 +411,7 @@ void pass1(char* filename)
 										else if (strcmp(mneumonic, "resw") == 0)
 										{
 											if (operand[0] == '\0')
-												strcat(errors, "x400x"); //missing operand
+												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
 												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
@@ -444,7 +423,7 @@ void pass1(char* filename)
 									{
 										mneumonicCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
 										mneumonicCode = mneumonic;
-										strcat(errors, "x210x"); //invalid mneumonic or directive 
+										errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
 										//the operand field must equal something so we can print it
 										operand = malloc(sizeof(char));
@@ -455,33 +434,80 @@ void pass1(char* filename)
 								LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
 
 								if ((LOCCTR - startingAddress) > MAX_PROGRAM_SIZE)
-									strcat(errors, "x900x"); //program is too long
+									errors = strCat(errors, "x900x"); //program is too long
+
+								comment = processRest(&line);
+								errors = strCat(errors, "\0"); //add a null terminator to errors
 
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 								
-								/*
-								fputs(strcat(origLine, "\n"), ourIntermediateFile); //[1]
-								fputs(strcat("NUMBER", "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
-								fputs(strcat(label, "\n"), ourIntermediateFile); //[3]
-								fputs(strcat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
-								fputs(strcat(operand, "\n"), ourIntermediateFile); //[5] (if we had operation -or- a mneumonic this is also taken care of)
-								fputs(strcat(comment, "\n"), ourIntermediateFile); //[6]
-								fputs(strcat(errors, "\n"), ourIntermediateFile); //[7]
-								fputs("\n", ourIntermediateFile); //[\n]
-								*/
+								if (printIntermediateFile == 1) {
+									printf("%s\n", origLine); //[1]
+									printf("%x\n", (LOCCTR - locctrAddition)); //[2] 
+									printf("%s\n", label); //[3]
+									printf("%s\n", mneumonicCode); //[4]
+									printf("%s\n", operand); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+									printf("%s\n", comment); //[6]
+									printf("%s\n", errors); //[7]
+									printf("\n"); //[\n]
+								}
+								if (writeIntermediateFile == 1) {
+									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
+									char *eptr;
+									//fputs(strCat(itoa((LOCCTR - locctrAddition), eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
+									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
+									fputs(strCat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
+									fputs(strCat(operand, "\n"), ourIntermediateFile); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+									fputs(strCat(comment, "\n"), ourIntermediateFile); //[6]
+									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
+									fputs("\n", ourIntermediateFile); //[\n]
+								}
+							}
+							else //we DID NOT find a mneumonic
+							{
+								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
-								printf(strcat(origLine, "\n")); //[1]
-								//printf(strcat("NUMBER", "\n")); //[2] (LOCCTR - locctrAddition)
-								printf(strcat(label, "\n")); //[3]
-								printf(strcat(mneumonicCode, "\n")); //[4]
-								printf(strcat(operand, "\n")); //[5] (if we had operation -or- a mneumonic this is also taken care of)
-								//comment = processRest(&line);
-								//printf(strcat(comment, "\n")); //[6]
-								//printf(strcat(errors, "\n")); //[7]
-								printf("\n"); //[\n]
+								locctrAddition += 3; //add to the location counter
+
+								errors = strCat(errors, "\0"); //add a null terminator to errors
+
+								if (printIntermediateFile == 1) {
+									printf("%s\n", origLine); //[1]
+									printf("%x\n", LOCCTR); //[2]
+									printf("%s\n", label); //[3]
+									printf("\n\n\n"); //[4] -> [6]
+									printf("%s\n", errors); //[7]
+									printf("\n"); //[\n]
+								}
+								if (writeIntermediateFile == 1) {
+									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
+									char *eptr;
+									//fputs(strCat(itoa(LOCCTR, eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR)
+									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
+									fputs(strCat(errors, "\n"), ourIntermediateFile); //[4]
+									fputs("\n\n\n", ourIntermediateFile); //[5] -> [7]
+									fputs("\n", ourIntermediateFile); //[\n]
+								}
 							}
 						}
-						//ELSE... we dont write this line to the intermediate file
+						else //we found a comment
+						{
+							//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
+
+							if (printIntermediateFile == 1) {
+								printf("%s\n", origLine); //[1]
+								printf("%x\n", LOCCTR); //[2]
+								printf("\n\n\n\n\n"); //[3] -> [7]
+								printf("\n"); //[\n]
+							}
+							if (writeIntermediateFile == 1) {
+								fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
+								char* eptr;
+								//fputs(strCat(itoa(LOCCTR,eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR)
+								fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
+								fputs("\n", ourIntermediateFile); //[\n]
+							}
+						}
 					}
 					//ELSE... we ignore this blank line
 
@@ -490,17 +516,34 @@ void pass1(char* filename)
 				//-------------------------AFTER END
 
 				//if we stopeed reading the file because END was found
-				if (endFound == 0)
-					fputs("\n\n\n\n\n\nErrors: x020x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (no end directive)
+				if (endFound == 0) 
+				{
+					//SPECIAL ERROR [8 lines] (no end directive)
+					if (printIntermediateFile == 1)
+						printf("\n\n\n\n\n\nErrors: x020x\n\n");
+					if (writeIntermediateFile == 1)
+						fputs("\n\n\n\n\n\nErrors: x020x\n\n", ourIntermediateFile); 
+				}
 			}
-			else
-				fputs("\n\n\n\n\n\nErrors: x010x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (no start directive)
+			else 
+			{
+				//SPECIAL ERROR [8 lines] (no start directive)
+				if (printIntermediateFile == 1)
+					printf("\n\n\n\n\n\nErrors: x010x\n\n");
+				if(writeIntermediateFile == 1)
+					fputs("\n\n\n\n\n\nErrors: x010x\n\n", ourIntermediateFile); 
+			}
 
 			fclose(ourSourceFile); //close our source file after reading it
 		}
-		else //SOURCE did not open properly
-			fputs("\n\n\n\n\n\nErrors: x000x\n\n", ourIntermediateFile); //SPECIAL ERROR [8 lines] (source did not open)
-
+		else 
+		{ 
+			//SPECIAL ERROR [8 lines] (source did not open)
+			if (printIntermediateFile == 1)
+				printf("\n\n\n\n\n\nErrors: x000x\n\n");
+			if (writeIntermediateFile == 1)
+				fputs("\n\n\n\n\n\nErrors: x000x\n\n", ourIntermediateFile); 
+		}
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
 	}
@@ -509,6 +552,71 @@ void pass1(char* filename)
 }
 
 //-------------------------EXTRA PROCS-------------------------
+
+//----------Integer to String
+
+char* reverse(char* str, int length)
+{
+	char* strCopy = stringCopy(str);
+
+	int index = 0;
+	int index2 = length - 1;
+
+	while (index < length) {
+		strCopy[index] = str[index2];
+		index++;
+		index2--;
+	}
+
+	return strCopy;
+}
+
+char* itoa(int num, char* str, int base) //does not take in negative numbers (only works with base 10 and base 16)
+{
+	if (num < 0)
+		return '\0';
+	else //process the positive number
+	{
+		int i = 0;
+		char *ret;
+
+		/* Handle 0 explicitely, otherwise empty string is printed for 0 */
+		if (num == 0)
+		{
+			ret = malloc(2 * sizeof(char));
+			ret[0] = '0';
+			ret[1] = '\0';
+			return ret;
+		}
+		else
+		{
+			//get size of this number so we can properly allocate space
+			int digits = 0;
+			int numCopy = num;
+			while ((numCopy/10) != 0) {
+				digits++;
+				numCopy = numCopy / 10; //remove the last digit
+			}
+
+			//TODO... process digits for base 10 and base 16
+
+			// Process individual digits
+			while (num != 0)
+			{
+				int rem = num % base;
+				str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+				num = num / base;
+			}
+
+			str[i] = '\0'; // Append string terminator
+
+			// Reverse the string
+			reverse(str, i);
+
+			return ret;
+		}
+	}
+}
 
 //----------Handle Tockenizing
 
@@ -599,6 +707,32 @@ int isNumber16(char* num) {
 		if (isxdigit(num[i]) == 0)
 			return 0;
 	return 1;
+}
+
+char* strCat(char* startValue, char* addedValue) 
+{
+	int newLength = (strlen(startValue) + strlen(addedValue));
+	char* newString = malloc(newLength * sizeof(char));
+	
+	int index = 0;
+	int startIndex = 0;
+	int addIndex = 0;
+	while (index < newLength) {
+		if (index < strlen(startValue)) 
+		{
+			newString[index] = startValue[startIndex];
+			startIndex++;
+		}
+		else
+		{
+			newString[index] = addedValue[addIndex];
+			addIndex++;
+		}
+		index++;
+	}
+	newString[newLength] = '\0';
+
+	return newString;
 }
 
 //inefficient but clean up code nicely
