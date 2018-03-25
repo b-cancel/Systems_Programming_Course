@@ -38,6 +38,8 @@ I am Assuming:
 
 //TODO list (must)
 //1. remove limit MAX_CHARS_PER_WORD
+//2. repair "itoa16" to actually function
+//3. write the location counter and as a HEX number onto the intermediate file
 
 //TODO list (maybe)
 //1. to the symbol table add (scope info, type[of what?], length[of what?])
@@ -72,7 +74,8 @@ I am Assuming:
 
 //---integer to string
 char* reverse(char* str, int length);
-char* itoa(int num, char* str, int base);
+char* itoa16(int num);
+char* itoa10(int num);
 
 //---other prototypes
 int validLabel(char* label);
@@ -189,7 +192,7 @@ void pass1(char* filename)
 				do {
 					
 					char* errors = malloc(MAX_ERROR_CHARACTERS * sizeof(char));
-					errors = "Errors: ";
+					errors = "";
 
 					stringToLower(&line); //remove case sensitivity
 					char *origLine = malloc(strlen(line) * sizeof(char));
@@ -247,15 +250,14 @@ void pass1(char* filename)
 
 									mneumonicCode = opCodeTbl[result].value;
 
-									//for everything except rsub read in a operand
+									//for everything except rsub read in an operand
 									if (strcmp(mneumonic, "rsub") != 0)
 									{
-										operand = processFirst(&line); //NOTE: operand assumed to be valid
+										operand = processFirst(&line);
 										if (operand[0] == '\0')
 											errors = strCat(errors, "x300x"); //missing operand
 										else
 										{
-											int opIsLabel = 0;
 											int lastCharIndex = strlen(operand) - 1;
 											char *rawOperand;
 
@@ -265,22 +267,21 @@ void pass1(char* filename)
 												rawOperand = stringCopy(operand);
 
 											if (validLabel(rawOperand) == 1) {
-												opIsLabel = 1;
-												//operand is a LABEL (assume we will eventually find what this is referencing to in pass 2)
-												//TODO... process this
+												//TODO... process this (LABEL)
 											}
 											else
 											{
 												if (isNumber16(operand) == 1)
 												{
 													if (strlen(operand) % 2 == 0)
-														; //TODO... process this
-													else {
+														; //TODO... process this (thing)
+													else 
+													{
 														//if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
 														if (operand[0] == 0 && isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0)
 														{
 															subStringRef(&operand, 1, strlen(operand) - 1); //get rid of 0
-																											//TODO.... process this
+															//TODO.... process this (thing)
 														}
 														else
 															errors = strCat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
@@ -289,13 +290,11 @@ void pass1(char* filename)
 												else
 													errors = strCat(errors, "x320x"); //hex number required but not found
 											}
-											//ELSE... we have already processed the operand as a label
 										}
 									}
 									else
 									{
 										//the operand field must equal something so we can print it
-										//the label field must equal something so we can print it
 										operand = malloc(sizeof(char) * 2);
 										operand[0] = ' ';
 										operand[1] = '\0';
@@ -338,15 +337,7 @@ void pass1(char* filename)
 											if (operand[0] == '\0')
 												errors = strCat(errors, "x400x"); //missing operand
 											else
-											{
-												int labelIndex = getKeyIndexSYMTBL(operand);
-
-												//NOTE: this essentially also guarantees our operand is valid as a label since that is a requirement when being addded into the symbol table
-												if (labelIndex != -1)
-													; //read in our label data
-												else
-													errors = strCat(errors, "x402x");  //the label you are referencing does not exist
-											}
+												; //TODO... process this (label) [location of error 402]
 
 											programLength = (LOCCTR - startingAddress); //save program length
 										}
@@ -361,8 +352,10 @@ void pass1(char* filename)
 													subStringRef(&operand, 2, strlen(operand) - 3); // the three values are C, ', and '
 
 													//max of 30 characters
-													if (strlen(operand) <= 30)
+													if (strlen(operand) <= 30) {
 														locctrAddition = strlen(operand); //add the length of this to LOCCTR
+														//TODO... make sure this is all i have to do to process this
+													}
 													else
 														errors = strCat(errors, "x403x"); //max of 30 chars
 												}
@@ -370,14 +363,17 @@ void pass1(char* filename)
 												{
 													subStringRef(&operand, 2, strlen(operand) - 3); // the three values are X, ', and '
 
-																									//must be even number of digits
+													//must be even number of digits
 													if (strlen(operand) % 2 == 0)
 													{
 														//max of 32 hex digits
 														if (strlen(operand) <= 32)
 														{
-															if (isNumber16(operand) == 1)
+															if (isNumber16(operand) == 1) 
+															{
 																locctrAddition = strlen(operand); //add the length of this to LOCCTR
+																//TODO... make sure this is all i have to do to process this
+															}
 															else
 																errors = strCat(errors, "x401x"); //must be a hex number 
 														}
@@ -395,6 +391,8 @@ void pass1(char* filename)
 										{
 											if (operand[0] == '\0')
 												errors = strCat(errors, "x400x"); //missing operand
+											else
+												; //TODO... process this (thing)
 
 											locctrAddition += 3;
 										}
@@ -405,7 +403,7 @@ void pass1(char* filename)
 											else
 											{
 												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-												locctrAddition += (num);
+												locctrAddition += (num); //TODO... make sure this is all i have to do to process this
 											}
 										}
 										else if (strcmp(mneumonic, "resw") == 0)
@@ -415,7 +413,7 @@ void pass1(char* filename)
 											else
 											{
 												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-												locctrAddition += (3 * num);
+												locctrAddition += (3 * num); //TODO... make sure this is all i have to do to process this
 											}
 										}
 									}
@@ -454,7 +452,7 @@ void pass1(char* filename)
 								if (writeIntermediateFile == 1) {
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 									char *eptr;
-									//fputs(strCat(itoa((LOCCTR - locctrAddition), eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
+									fputs(strCat(itoa16(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
 									fputs(strCat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
 									fputs(strCat(operand, "\n"), ourIntermediateFile); //[5] (if we had operation -or- a mneumonic this is also taken care of)
@@ -482,7 +480,7 @@ void pass1(char* filename)
 								if (writeIntermediateFile == 1) {
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 									char *eptr;
-									//fputs(strCat(itoa(LOCCTR, eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR)
+									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[4]
 									fputs("\n\n\n", ourIntermediateFile); //[5] -> [7]
@@ -503,7 +501,7 @@ void pass1(char* filename)
 							if (writeIntermediateFile == 1) {
 								fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 								char* eptr;
-								//fputs(strCat(itoa(LOCCTR,eptr, 16), "\n"), ourIntermediateFile); //[2] (LOCCTR)
+								fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 								fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
 								fputs("\n", ourIntermediateFile); //[\n]
 							}
@@ -520,18 +518,18 @@ void pass1(char* filename)
 				{
 					//SPECIAL ERROR [8 lines] (no end directive)
 					if (printIntermediateFile == 1)
-						printf("\n\n\n\n\n\nErrors: x020x\n\n");
+						printf("\n\n\n\n\n\nx020x\n\n");
 					if (writeIntermediateFile == 1)
-						fputs("\n\n\n\n\n\nErrors: x020x\n\n", ourIntermediateFile); 
+						fputs("\n\n\n\n\n\nx020x\n\n", ourIntermediateFile); 
 				}
 			}
 			else 
 			{
 				//SPECIAL ERROR [8 lines] (no start directive)
 				if (printIntermediateFile == 1)
-					printf("\n\n\n\n\n\nErrors: x010x\n\n");
+					printf("\n\n\n\n\n\nx010x\n\n");
 				if(writeIntermediateFile == 1)
-					fputs("\n\n\n\n\n\nErrors: x010x\n\n", ourIntermediateFile); 
+					fputs("\n\n\n\n\n\nx010x\n\n", ourIntermediateFile); 
 			}
 
 			fclose(ourSourceFile); //close our source file after reading it
@@ -540,9 +538,9 @@ void pass1(char* filename)
 		{ 
 			//SPECIAL ERROR [8 lines] (source did not open)
 			if (printIntermediateFile == 1)
-				printf("\n\n\n\n\n\nErrors: x000x\n\n");
+				printf("\n\n\n\n\n\nx000x\n\n");
 			if (writeIntermediateFile == 1)
-				fputs("\n\n\n\n\n\nErrors: x000x\n\n", ourIntermediateFile); 
+				fputs("\n\n\n\n\n\nx000x\n\n", ourIntermediateFile); 
 		}
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
@@ -571,50 +569,111 @@ char* reverse(char* str, int length)
 	return strCopy;
 }
 
-char* itoa(int num, char* str, int base) //does not take in negative numbers (only works with base 10 and base 16)
+char* itoa16(int num)
 {
-	if (num < 0)
-		return '\0';
-	else //process the positive number
+	char *ret;
+
+	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
+	if (num == 0)
 	{
-		int i = 0;
-		char *ret;
-
-		/* Handle 0 explicitely, otherwise empty string is printed for 0 */
-		if (num == 0)
-		{
-			ret = malloc(2 * sizeof(char));
-			ret[0] = '0';
-			ret[1] = '\0';
-			return ret;
+		ret = malloc(2 * sizeof(char));
+		ret[0] = '0';
+		ret[1] = '\0';
+		return ret;
+	}
+	else
+	{
+		int isNeg = 0;
+		if (num < 0) {
+			num *= -1; //make the number positive
+			isNeg = 1;
 		}
-		else
-		{
-			//get size of this number so we can properly allocate space
-			int digits = 0;
-			int numCopy = num;
-			while ((numCopy/10) != 0) {
-				digits++;
-				numCopy = numCopy / 10; //remove the last digit
-			}
 
-			//TODO... process digits for base 10 and base 16
+		//process the number (this is now guaranteed positive)
 
-			// Process individual digits
-			while (num != 0)
-			{
-				int rem = num % base;
-				str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-				num = num / base;
-			}
-
-			str[i] = '\0'; // Append string terminator
-
-			// Reverse the string
-			reverse(str, i);
-
-			return ret;
+		//get size of this number so we can properly allocate space
+		int digits = 0;
+		int numCopy = num;
+		while ((numCopy / 10) != 0) {
+			digits++;
+			numCopy = numCopy / 10; //remove the last digit
 		}
+
+		ret = malloc(digits * sizeof(char));
+
+		// Process individual digits
+		int index = 0;
+		while (num != 0)
+		{
+			int rem = num % 10;
+			ret[index] = (rem > 9) ? ((rem - 10) + 'a') : (rem + '0');
+			index++;
+			num = num / 10;
+		}
+
+		ret[index] = '\0'; // Append string terminator  
+
+		ret = reverse(ret, index); // Reverse the string
+
+		//add negative sign
+		if (isNeg == 1)
+			ret = strCat("-", ret);
+
+		return ret;
+	}
+}
+
+char* itoa10(int num)
+{
+	char *ret;
+
+	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
+	if (num == 0)
+	{
+		ret = malloc(2 * sizeof(char));
+		ret[0] = '0';
+		ret[1] = '\0';
+		return ret;
+	}
+	else
+	{
+		int isNeg = 0;
+		if (num < 0) {
+			num *= -1; //make the number positive
+			isNeg = 1;
+		}
+
+		//process the number (this is now guaranteed positive)
+
+		//get size of this number so we can properly allocate space
+		int digits = 0;
+		int numCopy = num;
+		while ((numCopy / 10) != 0) {
+			digits++;
+			numCopy = numCopy / 10; //remove the last digit
+		}
+
+		ret = malloc(digits * sizeof(char));
+
+		// Process individual digits
+		int index = 0;
+		while (num != 0)
+		{
+			int rem = num % 10;
+			ret[index] = (rem + '0'); //(rem > 9) ? (rem - 10) + 'a' : rem + '0';
+			index++;
+			num = num / 10;
+		}
+
+		ret[index] = '\0'; // Append string terminator  
+
+		ret = reverse(ret, index); // Reverse the string
+
+		//add negative sign
+		if (isNeg == 1)
+			ret = strCat("-", ret);
+
+		return ret;
 	}
 }
 

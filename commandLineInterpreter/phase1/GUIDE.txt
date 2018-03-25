@@ -1,6 +1,10 @@
+HOW TO RUN: compile ONLY the "commandLineInterpreter.c" with gcc
+
 For Easy Access The Intermediate File Will Be Formatted As Such
 
 For Every Line Of Code In Between START and END (including comments) we will have 8 lines in the intermediate file
+	-the special errors are not nessesarily between START and END
+	-these lines are present regardless of whether or not we have something to be displayed on that line
 [1]copy of source line
 [2]location counter
 [3]label 
@@ -27,13 +31,19 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 300 -> missing operand
 310 -> operand hex number must be in bytes, so you must have an even digit count
 320 -> operand must be a number in hex
+330 -> operand label you are referencing does not exist
 ---Operand Codes(for directives) [4]
 400 -> missing operand
-401 -> operand must be a number in hex
-402 -> operand label you are referencing does not exist
-403 -> operand larger than 30 character max
-404 -> operand larger than 16 byte max
-405 -> operand hex number must be in bytes, so you must have an even digit count
-406 -> operand must be a string or hex value with marker 'c' or 'x'
+410 -> operand must be a number in hex
+420 -> operand label you are referencing does not exist
+430 -> operand larger than 30 character max
+440 -> operand larger than 16 byte max
+450 -> operand hex number must be in bytes, so you must have an even digit count
+460 -> operand must be a string or hex value with marker 'c' or 'x'
 ---misc Codes [9]
 900 -> program length above 32768 byte limit
+
+NOTE: you told us not to implement ERROR CODES 330 -or- 420... so they are there but will not function (for now)
+
+//ERRORS i must test that i cant show 000, 010, 110, 900
+//ERRORS i want to show... 020, 100, 120, 130, 200, 201, 300, 310, 320, 400, 410, 420, 430, 440, 450, 460
