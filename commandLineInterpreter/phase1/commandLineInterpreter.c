@@ -90,9 +90,9 @@ int main()
 
 			//make entire command not case sensitive(all to LOWER)
 			int charID;
-			for (charID = 0; charID < strlen(buffer); charID++)
-				if (buffer[charID] >= 65 && buffer[charID] <= 90) //A -> Z
-					buffer[charID] = buffer[charID] + 32; //toLowerCase
+			//for (charID = 0; charID < strlen(buffer); charID++)
+			//	if (buffer[charID] >= 65 && buffer[charID] <= 90) //A -> Z
+			//		buffer[charID] = buffer[charID] + 32; //toLowerCase
 
 			//-----cut up the information we received in the buffer
 
@@ -132,7 +132,7 @@ int main()
 						{
 						case 0:
 							currLength = strlen(command);
-							command[currLength] = buffer[charID];
+							command[currLength] = tolower(buffer[charID]);
 							command[currLength + 1] = '\0';
 							break;
 						case 1:

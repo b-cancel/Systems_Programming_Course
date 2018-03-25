@@ -22,9 +22,6 @@ Deliverable:
 5. @toplevel/3334/phase2
 with only source files in said folder
 
-NOTE:
-itoa() doesn't work in unix/linux server (atoi works)
-
 I am Assuming:
 (1) Everything in "TODO list (maybe)" below is not a requirement
 (2) (a) intermediate file (b) listing file (c) object file -> Dont Require a Specific File Extension (using .txt)
@@ -33,7 +30,8 @@ I am Assuming:
 	-and a line with just a LABEL must still increment the LOCCTR (otherwise you might reference an undesired label)
 (5) we dont have to process our LABELS until pass 2 (eventhough we can technically process the ones that are backwards references)
 (6) operands that are HEX values... ONLY has to have an even length
-(7) start and end dont add to the location counter
+(7) start and end dont add to the location counter (as shown by phase 1 psuedo code)
+(8) just a label on its own does add to the location counter by 3
 */
 
 //TODO list (must)
@@ -53,7 +51,7 @@ I am Assuming:
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
 //constants that will eventually be used throughout code
-#define MAX_PROGRAM_SIZE 32768
+#define MAX_PROGRAM_SIZE  32768
 #define MAX_CHARS_PER_WORD 100
 #define MAX_SYMBOLS 500
 #define MAX_SYMBOL_SIZE 7 //6 spots and null terminator
@@ -71,6 +69,9 @@ I am Assuming:
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+
+int isEmpty(char* charArray);
+char* returnEmptyString();
 
 //---integer to string
 char* reverse(char* str, int length);
@@ -131,7 +132,8 @@ charToChar opCodeTbl[OPCOUNT_COUNT];
 
 void pass1(char* filename)
 {
-	printf("running pass 1\n\n");
+	printf("Source File: '%s'\n",filename);
+	printf("running PASS 1\n");
 
 	int programLength = 0; //require for the begining of pass 2
 
@@ -140,7 +142,11 @@ void pass1(char* filename)
 	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
 	//place INTERMEDIATE in stream, mae sure INTERMEDIATE file opens for writing properly
-	FILE *ourIntermediateFile = fopen("./intermediate.txt", "w"); //wipes out the file
+	char* interFileName = strCat(subString(filename, 0, strlen(filename) - 4), "Intermediate.txt");
+	printf("Intermediate File: '%s'\n", interFileName);
+	printf("\n");
+
+	FILE *ourIntermediateFile = fopen(strCat("./",interFileName), "w"); //wipes out the file
 	if (ourIntermediateFile != NULL) 
 	{
 		//place SOURCE in stream, make sure SOURCE file opens for reading properly
@@ -163,22 +169,35 @@ void pass1(char* filename)
 
 			int startFound = 0;
 			//ignore lines until we find START
-			while (startFound == 0 && getline(&line, &len, ourSourceFile) != -1) {
-
+			while (startFound == 0 && getline(&line, &len, ourSourceFile) != -1) 
+			{
 				char *lineCopy = stringCopy(line); //make a copy of the line (because the actual line should be processed below)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
 
-										  //we did not find a white space(potential label)
-				if (labelFound(line) == 1) {
+				//we did not find a white space(potential label)
+				if (labelFound(lineCopy) == 1) 
+				{
 					label = processFirst(&lineCopy);
-					if (validLabel(label) == 1) {
-						mneumonic = processFirst(&lineCopy);
-						if (strcmp(mneumonic, "start") == 0)
-							startFound = 1;
+					if (isEmpty(label) != 1)
+					{
+						if (validLabel(label) == 1)
+						{
+							mneumonic = processFirst(&lineCopy);
+							if (isEmpty(mneumonic) != 1)
+							{
+								if (strcmp(mneumonic, "start") == 0)
+									startFound = 1;
+								//ELSE... we must continute searching
+							}
+							else
+								mneumonic = returnEmptyString();
+						}
+						//ELSE... we have not found a VALID label... we cannot find START
 					}
-					//ELSE... we have not found a label... we cannot find START
+					else
+						label = returnEmptyString();
 				}
-				//ELSE... we have not found label... we cannot find START
+				//ELSE... we have not found label in our line... we cannot find START
 			}
 
 			//if we stoped reading the file because START was found (we have some commands to read into our file)
@@ -200,6 +219,8 @@ void pass1(char* filename)
 
 					if (isBlankLine(line) != 1)
 					{
+						printf("started\n");
+
 						//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
 						int locctrAddition = 0;
@@ -209,38 +230,39 @@ void pass1(char* filename)
 							if (labelFound(line) == 1) //we have a label (but is it valid)
 							{
 								label = processFirst(&line);
-								int validResult = validLabel(label);
-								int addResult;
-								switch (validResult)
+								if (isEmpty(label) == 1)
+									label = returnEmptyString();
+								else //we have some sort of label
 								{
-								case 1: //LABEL is valid (add to symbol table)
-									addResult = addSYMTBL(label, LOCCTR);
-									switch (addResult)
+									//ELSE... we have something in labl
+									int validResult = validLabel(label);
+									int addResult;
+									switch (validResult)
 									{
-									case 1: break;
-									case 0: errors = strCat(errors, "x100x"); break; //duplicate label
-									case -1: errors = strCat(errors, "x110x"); break; //symbol tbl full
-									default: break;
+										case 1: //LABEL is valid (add to symbol table)
+											addResult = addSYMTBL(label, LOCCTR);
+											switch (addResult)
+											{
+												case 1: break;
+												case 0: errors = strCat(errors, "x100x"); break; //duplicate label
+												case -1: errors = strCat(errors, "x110x"); break; //symbol tbl full
+												default: break;
+											}
+											break;
+										case 0: errors = strCat(errors, "x120x"); break; //label starts with digit
+										case -1: errors = strCat(errors, "x130x"); break; //label is too long
+										default: break;
 									}
-									break;
-								case 0: errors = strCat(errors, "x120x"); break; //label starts with digit
-								case -1: errors = strCat(errors, "x130x"); break; //label is too long
-								default: break;
 								}
 							}
-							else
-							{
-								//the label field must equal something so we can print it
-								label = malloc(sizeof(char) * 2);
-								label[0] = ' ';
-								label[1] = '\0';
-							}
-							
+							else //the label field must equal something so we can print it
+								label = returnEmptyString();
+
 							//NOTE: by now we processed the label IF there was one -OR- had an ERROR added to it
 
-							if(line[0] != '\0') //we have an mneumonic but is it valid?
+							mneumonic = processFirst(&line);
+							if(isEmpty(mneumonic) != 1) //we have an mneumonic but is it valid?
 							{
-								mneumonic = processFirst(&line);
 								int result = getOperationIndex(mneumonic);
 								char* mneumonicCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
 
@@ -254,19 +276,27 @@ void pass1(char* filename)
 									if (strcmp(mneumonic, "rsub") != 0)
 									{
 										operand = processFirst(&line);
-										if (operand[0] == '\0')
+										if (isEmpty(operand) == 1) 
+										{
 											errors = strCat(errors, "x300x"); //missing operand
+											operand = returnEmptyString();
+										}
 										else
 										{
 											int lastCharIndex = strlen(operand) - 1;
 											char *rawOperand;
 
 											if (operand[lastCharIndex] == 'x' && operand[lastCharIndex - 1]) //form 'operand,x'
+											{
 												rawOperand = subString(operand, 0, strlen(operand) - 2);
+												if (isEmpty(rawOperand) == 1)
+													rawOperand = returnEmptyString();
+											}
 											else //form 'operand' 
 												rawOperand = stringCopy(operand);
 
-											if (validLabel(rawOperand) == 1) {
+											if (validLabel(rawOperand) == 1) 
+											{
 												//TODO... process this (LABEL)
 											}
 											else
@@ -292,21 +322,19 @@ void pass1(char* filename)
 											}
 										}
 									}
-									else
-									{
-										//the operand field must equal something so we can print it
-										operand = malloc(sizeof(char) * 2);
-										operand[0] = ' ';
-										operand[1] = '\0';
-									}
+									else //the operand field must equal something so we can print it
+										operand = returnEmptyString();
 								}
 								else //check if we have a directive
 								{
 									if (isDirective(mneumonic) == 1)
 									{
 										mneumonicCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-										operand = processFirst(&line);
 										mneumonicCode = mneumonic;
+
+										operand = processFirst(&line);
+										if (isEmpty(operand) == 1)
+											operand = returnEmptyString();
 
 										if (strcmp(mneumonic, "start") == 0)
 										{
@@ -316,7 +344,7 @@ void pass1(char* filename)
 											{
 												startFound++;
 
-												if (operand[0] == '\0')
+												if (isEmpty(operand) == 1)
 													errors = strCat(errors, "x400x"); //missing operand
 												else
 												{
@@ -334,7 +362,7 @@ void pass1(char* filename)
 										{
 											endFound = 1; //stop us from processing any more of this file
 
-											if (operand[0] == '\0')
+											if (isEmpty(operand) == 1)
 												errors = strCat(errors, "x400x"); //missing operand
 											else
 												; //TODO... process this (label) [location of error 402]
@@ -343,7 +371,7 @@ void pass1(char* filename)
 										}
 										else if (strcmp(mneumonic, "byte") == 0)
 										{
-											if (operand[0] == '\0')
+											if (isEmpty(operand) == 1)
 												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
@@ -353,11 +381,11 @@ void pass1(char* filename)
 
 													//max of 30 characters
 													if (strlen(operand) <= 30) {
-														locctrAddition = strlen(operand); //add the length of this to LOCCTR
+														locctrAddition += strlen(operand); //add the length of this to LOCCTR
 														//TODO... make sure this is all i have to do to process this
 													}
 													else
-														errors = strCat(errors, "x403x"); //max of 30 chars
+														errors = strCat(errors, "x430x"); //max of 30 chars
 												}
 												else if (operand[0] == 'x')
 												{
@@ -371,34 +399,34 @@ void pass1(char* filename)
 														{
 															if (isNumber16(operand) == 1) 
 															{
-																locctrAddition = strlen(operand); //add the length of this to LOCCTR
+																locctrAddition += strlen(operand); //add the length of this to LOCCTR
 																//TODO... make sure this is all i have to do to process this
 															}
 															else
-																errors = strCat(errors, "x401x"); //must be a hex number 
+																errors = strCat(errors, "x410x"); //must be a hex number 
 														}
 														else
-															errors = strCat(errors, "x404x");  //must be a max of 16 bytes 
+															errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
 													}
 													else
-														errors = strCat(errors, "x405x"); //number must be byte so must have even number of digits 
+														errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
 												}
 												else
-													errors = strCat(errors, "x406x"); //you can only pass a string or hex value as the operand to byte 
+													errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
 											}
 										}
 										else if (strcmp(mneumonic, "word") == 0)
 										{
-											if (operand[0] == '\0')
+											if (isEmpty(operand) == 1)
 												errors = strCat(errors, "x400x"); //missing operand
 											else
-												; //TODO... process this (thing)
+												; //ELSE... TODO... process this (thing)
 
 											locctrAddition += 3;
 										}
 										else if (strcmp(mneumonic, "resb") == 0)
 										{
-											if (operand[0] == '\0')
+											if (isEmpty(operand) == 1)
 												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
@@ -408,7 +436,7 @@ void pass1(char* filename)
 										}
 										else if (strcmp(mneumonic, "resw") == 0)
 										{
-											if (operand[0] == '\0')
+											if (isEmpty(operand) == 1)
 												errors = strCat(errors, "x400x"); //missing operand
 											else
 											{
@@ -424,14 +452,15 @@ void pass1(char* filename)
 										errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
 										//the operand field must equal something so we can print it
-										operand = malloc(sizeof(char));
-										operand = '\0';
+										operand = returnEmptyString();
 									}
 								}
 
 								LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
 
-								if ((LOCCTR - startingAddress) > MAX_PROGRAM_SIZE)
+								programLength = (LOCCTR - startingAddress);
+								printf("location counter: '%i' starting address '%i' program length '%i' vs max length '%i'\n", LOCCTR, startingAddress, programLength, MAX_PROGRAM_SIZE);
+								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCat(errors, "x900x"); //program is too long
 
 								comment = processRest(&line);
@@ -439,7 +468,10 @@ void pass1(char* filename)
 
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 								
-								if (printIntermediateFile == 1) {
+								if (printIntermediateFile == 1) 
+								{
+									printf("print 1\n");
+
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", (LOCCTR - locctrAddition)); //[2] 
 									printf("%s\n", label); //[3]
@@ -449,9 +481,11 @@ void pass1(char* filename)
 									printf("%s\n", errors); //[7]
 									printf("\n"); //[\n]
 								}
-								if (writeIntermediateFile == 1) {
+								if (writeIntermediateFile == 1) 
+								{
+									printf("write 1\n");
+
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-									char *eptr;
 									fputs(strCat(itoa16(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
 									fputs(strCat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
@@ -467,9 +501,17 @@ void pass1(char* filename)
 
 								locctrAddition += 3; //add to the location counter
 
+								programLength = (LOCCTR - startingAddress);
+								printf("location counter: '%i' starting address '%i' program length '%i' vs max length '%i'\n", LOCCTR, startingAddress, programLength, MAX_PROGRAM_SIZE);
+								if (programLength > MAX_PROGRAM_SIZE)
+									errors = strCat(errors, "x900x"); //program is too long
+
 								errors = strCat(errors, "\0"); //add a null terminator to errors
 
-								if (printIntermediateFile == 1) {
+								if (printIntermediateFile == 1) 
+								{
+									printf("print 2\n");
+
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", LOCCTR); //[2]
 									printf("%s\n", label); //[3]
@@ -477,13 +519,15 @@ void pass1(char* filename)
 									printf("%s\n", errors); //[7]
 									printf("\n"); //[\n]
 								}
-								if (writeIntermediateFile == 1) {
+								if (writeIntermediateFile == 1) 
+								{
+									printf("write 2\n");
+
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-									char *eptr;
 									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
-									fputs(strCat(errors, "\n"), ourIntermediateFile); //[4]
-									fputs("\n\n\n", ourIntermediateFile); //[5] -> [7]
+									fputs("\n\n\n", ourIntermediateFile); //[4] -> [6]
+									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
 									fputs("\n", ourIntermediateFile); //[\n]
 								}
 							}
@@ -492,20 +536,27 @@ void pass1(char* filename)
 						{
 							//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
-							if (printIntermediateFile == 1) {
+							if (printIntermediateFile == 1) 
+							{
+								printf("print 3\n");
+
 								printf("%s\n", origLine); //[1]
 								printf("%x\n", LOCCTR); //[2]
 								printf("\n\n\n\n\n"); //[3] -> [7]
 								printf("\n"); //[\n]
 							}
-							if (writeIntermediateFile == 1) {
+							if (writeIntermediateFile == 1) 
+							{
+								printf("write 3\n");
+
 								fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-								char* eptr;
 								fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 								fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
 								fputs("\n", ourIntermediateFile); //[\n]
 							}
 						}
+
+						printf("finished\n");
 					}
 					//ELSE... we ignore this blank line
 
@@ -550,6 +601,21 @@ void pass1(char* filename)
 }
 
 //-------------------------EXTRA PROCS-------------------------
+
+int isEmpty(char* charArray) 
+{
+	if (strcmp(charArray, "") == 0 || charArray[0] == '\0')
+		return 1;
+	else
+		return 0;
+}
+
+char* returnEmptyString() 
+{
+	char* aStr = malloc(sizeof(char));
+	aStr[0] = '\0';
+	return aStr;
+}
 
 //----------Integer to String
 
@@ -697,7 +763,7 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 		//make sure we have string left to check after getting rid of all spaces
 		if (line[lineID] == '\0') {
 			line[0] = '\0'; //nothing useful is left in the line
-			return '\0';
+			return returnEmptyString();
 		}
 		else
 		{
@@ -731,7 +797,7 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 		}
 	}
 	else
-		return '\0';
+		return returnEmptyString();
 }
 
 //-------------------------Other Functions 
