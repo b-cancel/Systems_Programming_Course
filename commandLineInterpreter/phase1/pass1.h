@@ -132,19 +132,18 @@ charToChar opCodeTbl[OPCOUNT_COUNT];
 
 void pass1(char* filename)
 {
+	printf("\nRunning PASS 1\n");
 	printf("Source File: '%s'\n",filename);
-	printf("running PASS 1\n");
 
 	int programLength = 0; //require for the begining of pass 2
 
 	//---Debugging Tools
-	int printIntermediateFile = 1; //1 to print, 0 to not print
+	int printIntermediateFile = 0; //1 to print, 0 to not print
 	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
 	//place INTERMEDIATE in stream, mae sure INTERMEDIATE file opens for writing properly
 	char* interFileName = strCat(subString(filename, 0, strlen(filename) - 4), "Intermediate.txt");
 	printf("Intermediate File: '%s'\n", interFileName);
-	printf("\n");
 
 	FILE *ourIntermediateFile = fopen(strCat("./",interFileName), "w"); //wipes out the file
 	if (ourIntermediateFile != NULL) 
@@ -167,7 +166,9 @@ void pass1(char* filename)
 
 			//-------------------------BEFORE START
 
+			int LOCCTR = 0;
 			int startFound = 0;
+
 			//ignore lines until we find START
 			while (startFound == 0 && getline(&line, &len, ourSourceFile) != -1) 
 			{
@@ -185,8 +186,15 @@ void pass1(char* filename)
 							mneumonic = processFirst(&lineCopy);
 							if (isEmpty(mneumonic) != 1)
 							{
-								if (strcmp(mneumonic, "start") == 0)
+								if (strcmp(mneumonic, "start") == 0) 
+								{
+									//NOTE: this is required here simply so that we can map the name of the file properly to the LOCCTR when we process the labe
+									operand = processFirst(&lineCopy);
+									if (isEmpty(operand) != 1)
+										if (isNumber10(operand) == 1) //is number
+											LOCCTR = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
 									startFound = 1;
+								}
 								//ELSE... we must continute searching
 							}
 							else
@@ -204,9 +212,10 @@ void pass1(char* filename)
 			if (startFound == 1) {
 
 				//-------------------------BETWEEN START and END
+
 				int startingAddress = 0;
-				int LOCCTR = 0;
 				int endFound = 0;
+
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
 				do {
 					
@@ -219,8 +228,6 @@ void pass1(char* filename)
 
 					if (isBlankLine(line) != 1)
 					{
-						printf("started\n");
-
 						//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
 						int locctrAddition = 0;
@@ -303,19 +310,22 @@ void pass1(char* filename)
 											{
 												if (isNumber16(operand) == 1)
 												{
-													if (strlen(operand) % 2 == 0)
-														; //TODO... process this (thing)
-													else 
+													//if we have a HEX number that starts with A -> F
+													int secondHexDigitAtoF = (isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0) ? 1 : 0;
+													if (operand[0] == '0' && secondHexDigitAtoF) 
 													{
-														//if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
-														if (operand[0] == 0 && isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0)
-														{
-															subStringRef(&operand, 1, strlen(operand) - 1); //get rid of 0
-															//TODO.... process this (thing)
-														}
-														else
-															errors = strCat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
+														//shift everything to the left
+														//NOTE: I would use substring but for reasons unknown it isnt working properly
+														for (int i = 1; i <= strlen(operand); i++)
+															operand[i - 1] = operand[i];
 													}
+
+													if (strlen(operand) % 2 == 0)  //if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
+													{
+														//TODO... process this
+													}
+													else
+														errors = strCat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
 												}
 												else
 													errors = strCat(errors, "x320x"); //hex number required but not found
@@ -459,7 +469,6 @@ void pass1(char* filename)
 								LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
 
 								programLength = (LOCCTR - startingAddress);
-								printf("location counter: '%i' starting address '%i' program length '%i' vs max length '%i'\n", LOCCTR, startingAddress, programLength, MAX_PROGRAM_SIZE);
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCat(errors, "x900x"); //program is too long
 
@@ -470,8 +479,6 @@ void pass1(char* filename)
 								
 								if (printIntermediateFile == 1) 
 								{
-									printf("print 1\n");
-
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", (LOCCTR - locctrAddition)); //[2] 
 									printf("%s\n", label); //[3]
@@ -483,8 +490,6 @@ void pass1(char* filename)
 								}
 								if (writeIntermediateFile == 1) 
 								{
-									printf("write 1\n");
-
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 									fputs(strCat(itoa16(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
@@ -502,7 +507,6 @@ void pass1(char* filename)
 								locctrAddition += 3; //add to the location counter
 
 								programLength = (LOCCTR - startingAddress);
-								printf("location counter: '%i' starting address '%i' program length '%i' vs max length '%i'\n", LOCCTR, startingAddress, programLength, MAX_PROGRAM_SIZE);
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCat(errors, "x900x"); //program is too long
 
@@ -510,8 +514,6 @@ void pass1(char* filename)
 
 								if (printIntermediateFile == 1) 
 								{
-									printf("print 2\n");
-
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", LOCCTR); //[2]
 									printf("%s\n", label); //[3]
@@ -521,8 +523,6 @@ void pass1(char* filename)
 								}
 								if (writeIntermediateFile == 1) 
 								{
-									printf("write 2\n");
-
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
@@ -538,8 +538,6 @@ void pass1(char* filename)
 
 							if (printIntermediateFile == 1) 
 							{
-								printf("print 3\n");
-
 								printf("%s\n", origLine); //[1]
 								printf("%x\n", LOCCTR); //[2]
 								printf("\n\n\n\n\n"); //[3] -> [7]
@@ -547,16 +545,12 @@ void pass1(char* filename)
 							}
 							if (writeIntermediateFile == 1) 
 							{
-								printf("write 3\n");
-
 								fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 								fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
 								fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
 								fputs("\n", ourIntermediateFile); //[\n]
 							}
 						}
-
-						printf("finished\n");
 					}
 					//ELSE... we ignore this blank line
 
@@ -594,10 +588,35 @@ void pass1(char* filename)
 				fputs("\n\n\n\n\n\nx000x\n\n", ourIntermediateFile); 
 		}
 
+		//---write the symbol table to the intermediate file
+
+		if (printIntermediateFile == 1) 
+		{
+			printf("---Symbol Table (string -> int)\n");
+			for (int i = 0; i < emptyIndex; i++)
+				printf("'%s' maps to '%i'\n", symbolTbl[i].key, symbolTbl[i].value);
+			printf("\n");
+		}
+		if(writeIntermediateFile == 1)
+		{
+			fputs("---Symbol Table (string -> int)\n", ourIntermediateFile);
+			for (int i = 0; i < emptyIndex; i++) {
+				char* str = strCat(symbolTbl[i].key, " maps to ");
+				char* val = itoa10(symbolTbl[i].value);
+				str = strCat(str, val);
+				str = strCat(str, "\n");
+				fputs(str, ourIntermediateFile);
+
+			}
+			fputs("\n", ourIntermediateFile);
+		}
+
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
 	}
 	else //INTERMEDIATE did not open properly
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
+
+	printf("finished PASS 1\n");
 }
 
 //-------------------------EXTRA PROCS-------------------------
