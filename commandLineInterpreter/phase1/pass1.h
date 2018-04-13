@@ -4,9 +4,9 @@ Last Updated: 3/20/18
 
 Description:
 Pass 1 will create:
--symbol table (label, address[-1 for null])
+-symbol table (label, address)
 -intermediate file (opcode and operand DO NOT HAVE TO be translated into object code)
-	FOR EACH LINE 
+	FOR EACH LINE (REQUIRED)
 	-copy of source line
 	-value of location counter
 	-values of mnemonics used (since they had to be looked up)
@@ -22,16 +22,28 @@ Deliverable:
 5. @toplevel/3334/phase2
 with only source files in said folder
 
+TODO (from things I'm Assuming)
+#4
+
 I am Assuming:
 (1) Everything in "TODO list (maybe)" below is not a requirement
 (2) (a) intermediate file (b) listing file (c) object file -> Dont Require a Specific File Extension (using .txt)
 (3) our labels work in a global scope (we dont need to check for scoping rules)
-(4) a line can just have a LABEL (this is contrary to this "{label}operation {operand{,X}} {comment}") but you had mentioned it to be a possibility
-	-and a line with just a LABEL must still increment the LOCCTR (otherwise you might reference an undesired label)
+(4) this "{label} operation {operand{,X}} {comment}") format must always be followed [so we cannot have a line with JUST a label]
 (5) we dont have to process our LABELS until pass 2 (eventhough we can technically process the ones that are backwards references)
-(6) operands that are HEX values... ONLY has to have an even length
-(7) start and end dont add to the location counter (as shown by phase 1 psuedo code)
-(8) just a label on its own does add to the location counter by 3
+(6) start and end dont add to the location counter (as shown by phase 1 psuedo code)
+(7) we ignore blank lines in code
+(8) ONLY labels can be found in column 1 of a command (NOT operations)
+(9) duplicate START directive WILL NOT change the starting address and set the location counter
+(10) duplicate label in symbol table WILL NOT update what value that symbol maps to
+---
+(11) we begin reading the file as code once we find a command with a (1) directive == start -AND- (2) a valid operand
+	we need (1) because otherwise we would not have found the begining of our code
+	we need (2) because we set our LOCCTR to START's operand... so if it isnt valid then we cant properly use LOCCTR
+	AFTER we find this very specific instruction we start counting anything with a START directive as a duplicate and flag the duplicate error
+(12) numbers in HEX have no specific restrictions on either (1) length or (2) evenness... unless specifically instructed
+(13) WORD operand has no restrictions
+(14) the operand of START should be a number in base 16 EVENTHOUGH it has the same arbitrary type "n" and RESB and RESW and they both have base 10 operands given the book
 */
 
 //TODO list (must)
@@ -50,8 +62,8 @@ I am Assuming:
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
-//constants that will eventually be used throughout code
-#define MAX_PROGRAM_SIZE  32768
+//constants that will be used throughout code
+#define MAX_PROGRAM_SIZE  32767
 #define MAX_CHARS_PER_WORD 100
 #define MAX_SYMBOLS 500
 #define MAX_SYMBOL_SIZE 7 //6 spots and null terminator
@@ -108,9 +120,9 @@ int getValueIndexSYMTBL(int value);
 void printSymbolTable();
 
 //---prototypes for opcode table
-void fillOpCodeTable();
-int containsOperation(char* operand);
-int getOperationIndex(char* operand);
+void buildOpCodeTable();
+int containsMnemonic(char* operand);
+int getMnemonicIndex(char* operand);
 void printOpCodeTable();
 
 //---Symbol Table Global Vars
@@ -135,13 +147,13 @@ void pass1(char* filename)
 	printf("\nRunning PASS 1\n");
 	printf("Source File: '%s'\n",filename);
 
-	int programLength = 0; //require for the begining of pass 2
+	int programLength = 0; //required for the begining of pass 2
 
 	//---Debugging Tools
 	int printIntermediateFile = 0; //1 to print, 0 to not print
 	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
-	//place INTERMEDIATE in stream, mae sure INTERMEDIATE file opens for writing properly
+	//place INTERMEDIATE in stream, make sure INTERMEDIATE file opens for writing properly
 	char* interFileName = strCat(subString(filename, 0, strlen(filename) - 4), "Intermediate.txt");
 	printf("Intermediate File: '%s'\n", interFileName);
 
@@ -152,25 +164,26 @@ void pass1(char* filename)
 		FILE *ourSourceFile = fopen(filename, "r");
 		if (ourSourceFile != NULL)
 		{
-			fillOpCodeTable();
+			buildOpCodeTable();
 
 			//create the variables that will be used to read in our file
 			char *line = NULL; //NOTE: this does not need a size because getline handle all of that
 			size_t len = 0;
 
-			//{label}operation {operand{,X}} {comment}
+			//{label} operation {operand{,X}} {comment}
 			char *label;
-			char *mneumonic;
+			char *operation;
 			char *operand;
 			char *comment;
 
-			//-------------------------BEFORE START
+			//--------------------------------------------------BEFORE START--------------------------------------------------
 
+			int startingAddress = 0;
 			int LOCCTR = 0;
 			int startFound = 0;
 
-			//ignore lines until we find START
-			while (startFound == 0 && getline(&line, &len, ourSourceFile) != -1) 
+			//ignore lines until we find a command with a (1) directive == start -AND- (2) a valid operand
+			while (startFound == 0 && getline(&line, &len, ourSourceFile) != -1)
 			{
 				char *lineCopy = stringCopy(line); //make a copy of the line (because the actual line should be processed below)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
@@ -181,67 +194,78 @@ void pass1(char* filename)
 					label = processFirst(&lineCopy);
 					if (isEmpty(label) != 1)
 					{
-						if (validLabel(label) == 1)
+						operation = processFirst(&lineCopy);
+						if (isEmpty(operation) != 1)
 						{
-							mneumonic = processFirst(&lineCopy);
-							if (isEmpty(mneumonic) != 1)
+							if (strcmp(operation, "start") == 0) 
 							{
-								if (strcmp(mneumonic, "start") == 0) 
+								//NOTE: this is required here simply so that we can map the name of the file properly to the LOCCTR when we process the label
+								operand = processFirst(&lineCopy);
+
+								if (isEmpty(operand) != 1)
 								{
-									//NOTE: this is required here simply so that we can map the name of the file properly to the LOCCTR when we process the labe
-									operand = processFirst(&lineCopy);
-									if (isEmpty(operand) != 1)
-										if (isNumber10(operand) == 1) //is number
-											LOCCTR = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-									startFound = 1;
+									if (isNumber16(operand) == 1) //is number
+									{
+										startingAddress = strtol(operand, NULL, 16);
+										LOCCTR = startingAddress; //init LOCCTR to starting address
+										startFound = 1; //we have located our first START directive that has a VALID operand
+									}
+									else //ELSE... we dont have a hex number
+									{
+										//SPECIAL ERROR [8 lines] (no end directive)
+										if (printIntermediateFile == 1)
+											printf("\n\n\n\n\n\nx030x\n\n");
+										if (writeIntermediateFile == 1)
+											fputs("\n\n\n\n\n\nx030x\n\n", ourIntermediateFile);
+									}
 								}
-								//ELSE... we must continute searching
+								//ELSE... we have a missing operand we cannot continue
 							}
-							else
-								mneumonic = returnEmptyString();
+							//ELSE... we did not find the START directive
 						}
-						//ELSE... we have not found a VALID label... we cannot find START
+						else //we did not find an operation
+							operation = returnEmptyString();
 					}
-					else
+					else //we did not find a label
 						label = returnEmptyString();
 				}
 				//ELSE... we have not found label in our line... we cannot find START
 			}
 
-			//if we stoped reading the file because START was found (we have some commands to read into our file)
+			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
 			if (startFound == 1) {
 
-				//-------------------------BETWEEN START and END
+				//--------------------------------------------------BETWEEN START and END--------------------------------------------------
 
-				int startingAddress = 0;
 				int endFound = 0;
 
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
-				do {
-					
+				do 
+				{
 					char* errors = malloc(MAX_ERROR_CHARACTERS * sizeof(char));
-					errors = "";
+					errors = returnEmptyString();
 
-					stringToLower(&line); //remove case sensitivity
-					char *origLine = malloc(strlen(line) * sizeof(char));
+					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (with case sensitivity) for writing it in its entirety into the intermediate file
 					origLine = stringCopy(line);
+					stringToLower(&line); //remove case sensitivity
 
 					if (isBlankLine(line) != 1)
 					{
-						//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
-
 						int locctrAddition = 0;
 
 						if(line[0] != '.') //we found a command
 						{
-							if (labelFound(line) == 1) //we have a label (but is it valid)
+							//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
+
+							//-------------------------LABEL FIELD-------------------------
+
+							if (labelFound(line) == 1) //we have a label
 							{
 								label = processFirst(&line);
 								if (isEmpty(label) == 1)
 									label = returnEmptyString();
 								else //we have some sort of label
 								{
-									//ELSE... we have something in labl
 									int validResult = validLabel(label);
 									int addResult;
 									switch (validResult)
@@ -250,7 +274,7 @@ void pass1(char* filename)
 											addResult = addSYMTBL(label, LOCCTR);
 											switch (addResult)
 											{
-												case 1: break;
+												case 1: break; //no errors
 												case 0: errors = strCat(errors, "x100x"); break; //duplicate label
 												case -1: errors = strCat(errors, "x110x"); break; //symbol tbl full
 												default: break;
@@ -265,22 +289,28 @@ void pass1(char* filename)
 							else //the label field must equal something so we can print it
 								label = returnEmptyString();
 
-							//NOTE: by now we processed the label IF there was one -OR- had an ERROR added to it
+							//NOTE: by now we processed the label IF there was one -AND- added the nessesarily ERRORS
 
-							mneumonic = processFirst(&line);
-							if(isEmpty(mneumonic) != 1) //we have an mneumonic but is it valid?
+							//-------------------------OPERATION FIELD-------------------------
+
+							operation = processFirst(&line);
+							if(isEmpty(operation) != 1) //we have an mneumonic but is it valid?
 							{
-								int result = getOperationIndex(mneumonic);
-								char* mneumonicCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
+								int result = getMnemonicIndex(operation);
+								char* operationCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
 
-								if (result != -1) //we have this operation
+								//----------------------------------------------------------------------------------------------------
+
+								if (result != -1) //we have this mnemonic
 								{
-									locctrAddition += 3; //add to the location counter
+									//---------------MNEMONIC FOUND---------------
 
-									mneumonicCode = opCodeTbl[result].value;
+									locctrAddition += 3; //NOTE: all mnemonic add to the location counter
+
+									operationCode = opCodeTbl[result].value;
 
 									//for everything except rsub read in an operand
-									if (strcmp(mneumonic, "rsub") != 0)
+									if (strcmp(operation, "rsub") != 0)
 									{
 										operand = processFirst(&line);
 										if (isEmpty(operand) == 1) 
@@ -337,128 +367,100 @@ void pass1(char* filename)
 								}
 								else //check if we have a directive
 								{
-									if (isDirective(mneumonic) == 1)
+									if (isDirective(operation) == 1)
 									{
-										mneumonicCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-										mneumonicCode = mneumonic;
+										//---------------DIRECTIVE FOUND---------------
 
-										operand = processFirst(&line);
-										if (isEmpty(operand) == 1)
+										operationCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
+										operationCode = operation;
+
+										//NOTE: all directives have operands
+										operand = processFirst(&line); 
+										if (isEmpty(operand) == 1) {
+											errors = strCat(errors, "x400x"); //missing operand
 											operand = returnEmptyString();
-
-										if (strcmp(mneumonic, "start") == 0)
-										{
-											if (startFound > 1)
-												errors = strCat(errors, "x200x"); //extra start directive 
-											else //its the first time finding a start directive
-											{
-												startFound++;
-
-												if (isEmpty(operand) == 1)
-													errors = strCat(errors, "x400x"); //missing operand
-												else
-												{
-													if (isNumber10(operand) == 1) //is number
-													{
-														startingAddress = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-														LOCCTR = startingAddress; //init LOCCTR to starting address
-													}
-													else
-														errors = strCat(errors, "x410x"); //we require a hex number
-												}
-											}
 										}
-										else if (strcmp(mneumonic, "end") == 0)
+										//ELSE... we have the operand we require
+
+										if (strcmp(operation, "start") == 0)
+										{
+											//NOTE: because we checked that 'a' START directive was found with a VALID operand
+											//and using that operand we set our LOCCTR like we should have
+											//IF we are here then we know we have an EXTRA START directive
+											//except the for the first start we find (which we run in here because we still need to process the validity of its label)
+											//we know for a fact that its operand is valid
+
+											if(startFound > 1)
+												errors = strCat(errors, "x200x"); //extra start directive 
+											startFound++;
+										}
+										else if (strcmp(operation, "end") == 0)
 										{
 											endFound = 1; //stop us from processing any more of this file
-
-											if (isEmpty(operand) == 1)
-												errors = strCat(errors, "x400x"); //missing operand
-											else
-												; //TODO... process this (label) [location of error 402]
-
-											programLength = (LOCCTR - startingAddress); //save program length
 										}
-										else if (strcmp(mneumonic, "byte") == 0)
+										else if (strcmp(operation, "byte") == 0) //Stores either character strings (C'...') or hexadecimal values (X'...')
 										{
-											if (isEmpty(operand) == 1)
-												errors = strCat(errors, "x400x"); //missing operand
-											else
+											if (operand[0] == 'c')
 											{
-												if (operand[0] == 'c')
-												{
-													subStringRef(&operand, 2, strlen(operand) - 3); // the three values are C, ', and '
+												char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are C, ', and '
 
-													//max of 30 characters
-													if (strlen(operand) <= 30) {
-														locctrAddition += strlen(operand); //add the length of this to LOCCTR
-														//TODO... make sure this is all i have to do to process this
-													}
-													else
-														errors = strCat(errors, "x430x"); //max of 30 chars
-												}
-												else if (operand[0] == 'x')
-												{
-													subStringRef(&operand, 2, strlen(operand) - 3); // the three values are X, ', and '
+												//max of 30 characters
+												if (strlen(tempOperand) <= 30)
+													locctrAddition += strlen(tempOperand); //add enough space to store this string (one spot for each character)
+												else
+													errors = strCat(errors, "x430x"); //max of 30 chars
+											}
+											else if (operand[0] == 'x')
+											{
+												char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are X, ', and '
 
-													//must be even number of digits
-													if (strlen(operand) % 2 == 0)
+												//must be even number of digits
+												if (strlen(tempOperand) % 2 == 0)
+												{
+													//max of 32 hex digits
+													if (strlen(tempOperand) <= 32)
 													{
-														//max of 32 hex digits
-														if (strlen(operand) <= 32)
-														{
-															if (isNumber16(operand) == 1) 
-															{
-																locctrAddition += strlen(operand); //add the length of this to LOCCTR
-																//TODO... make sure this is all i have to do to process this
-															}
-															else
-																errors = strCat(errors, "x410x"); //must be a hex number 
-														}
+														if (isNumber16(tempOperand) == 1)
+															locctrAddition += (strlen(tempOperand)/2); //add enough space to store this hex number (one spot for each byte)
 														else
-															errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
+															errors = strCat(errors, "x410x"); //must be a hex number 
 													}
 													else
-														errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
+														errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
 												}
 												else
-													errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
+													errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
 											}
-										}
-										else if (strcmp(mneumonic, "word") == 0)
-										{
-											if (isEmpty(operand) == 1)
-												errors = strCat(errors, "x400x"); //missing operand
 											else
-												; //ELSE... TODO... process this (thing)
-
+												errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
+										}
+										else if (strcmp(operation, "word") == 0) //*
+										{
 											locctrAddition += 3;
 										}
-										else if (strcmp(mneumonic, "resb") == 0)
+										else if (strcmp(operation, "resb") == 0) //Reserves space for n bytes
 										{
-											if (isEmpty(operand) == 1)
-												errors = strCat(errors, "x400x"); //missing operand
+											if (isNumber10(operand) == 1) //is number
+												locctrAddition += (strtol(operand, NULL, 10));
 											else
-											{
-												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-												locctrAddition += (num); //TODO... make sure this is all i have to do to process this
-											}
+												errors = strCat(errors, "x340x"); //you need a dec number passed
 										}
-										else if (strcmp(mneumonic, "resw") == 0)
+										else if (strcmp(operation, "resw") == 0) //Reserves space for n words (3n bytes)
 										{
-											if (isEmpty(operand) == 1)
-												errors = strCat(errors, "x400x"); //missing operand
+											if (isNumber10(operand) == 1) //is number
+												locctrAddition += (strtol(operand, NULL, 10) * 3); 
 											else
-											{
-												int num = strtol(operand, NULL, 16); //convert to base 10 from base 16 string
-												locctrAddition += (3 * num); //TODO... make sure this is all i have to do to process this
-											}
+												errors = strCat(errors, "x340x"); //you need a dec number passed
 										}
+
+										//----------------------------------------------------------------------------------------------------
 									}
 									else
 									{
-										mneumonicCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-										mneumonicCode = mneumonic;
+										//---------------INVALID OPERATION---------------
+
+										operationCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
+										operationCode = operation;
 										errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
 										//the operand field must equal something so we can print it
@@ -482,8 +484,8 @@ void pass1(char* filename)
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", (LOCCTR - locctrAddition)); //[2] 
 									printf("%s\n", label); //[3]
-									printf("%s\n", mneumonicCode); //[4]
-									printf("%s\n", operand); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+									printf("%s\n", operationCode); //[4]
+									printf("%s\n", operand); //[5]
 									printf("%s\n", comment); //[6]
 									printf("%s\n", errors); //[7]
 									printf("\n"); //[\n]
@@ -493,18 +495,26 @@ void pass1(char* filename)
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
 									fputs(strCat(itoa16(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
-									fputs(strCat(mneumonicCode, "\n"), ourIntermediateFile); //[4]
-									fputs(strCat(operand, "\n"), ourIntermediateFile); //[5] (if we had operation -or- a mneumonic this is also taken care of)
+									fputs(strCat(operationCode, "\n"), ourIntermediateFile); //[4]
+									fputs(strCat(operand, "\n"), ourIntermediateFile); //[5] 
 									fputs(strCat(comment, "\n"), ourIntermediateFile); //[6]
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
 									fputs("\n", ourIntermediateFile); //[\n]
 								}
 							}
-							else //we DID NOT find a mneumonic
+							else //we DID NOT find a OPERATION
 							{
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
-								locctrAddition += 3; //add to the location counter
+								/*
+								NOTE: IF this was a blank line it would have been skipped... so we would be in here...
+								So the line was not empty but an operation was NOT found...
+								So we must have a line with JUST / ONLY a Label
+
+								Given the format of the instructions given this is not allowed
+								*/
+
+								errors = strCat(errors, "x140x");
 
 								programLength = (LOCCTR - startingAddress);
 								if (programLength > MAX_PROGRAM_SIZE)
@@ -556,9 +566,9 @@ void pass1(char* filename)
 
 				} while (getline(&line, &len, ourSourceFile) != -1 && endFound == 0);
 
-				//-------------------------AFTER END
+				//--------------------------------------------------AFTER END -or- EOF--------------------------------------------------
 
-				//if we stopeed reading the file because END was found
+				//if we stoped reading the file because END was found
 				if (endFound == 0) 
 				{
 					//SPECIAL ERROR [8 lines] (no end directive)
@@ -570,7 +580,7 @@ void pass1(char* filename)
 			}
 			else 
 			{
-				//SPECIAL ERROR [8 lines] (no start directive)
+				//SPECIAL ERROR [8 lines] (no START directive with a VALID operand)
 				if (printIntermediateFile == 1)
 					printf("\n\n\n\n\n\nx010x\n\n");
 				if(writeIntermediateFile == 1)
@@ -588,7 +598,7 @@ void pass1(char* filename)
 				fputs("\n\n\n\n\n\nx000x\n\n", ourIntermediateFile); 
 		}
 
-		//---write the symbol table to the intermediate file
+		//--------------------------------------------------SYMBOL TABLE TO INTERMEDIATE FILE--------------------------------------------------
 
 		if (printIntermediateFile == 1) 
 		{
@@ -606,7 +616,6 @@ void pass1(char* filename)
 				str = strCat(str, val);
 				str = strCat(str, "\n");
 				fputs(str, ourIntermediateFile);
-
 			}
 			fputs("\n", ourIntermediateFile);
 		}
@@ -1075,7 +1084,7 @@ void printSymbolTable() {
 
 //-------------------------Op Code Table Functions (Symbol | Location)
 
-void fillOpCodeTable() {
+void buildOpCodeTable() {
 
 	int index = 0;
 	for (int index = 0; index < OPCOUNT_COUNT; index++) {
@@ -1154,14 +1163,14 @@ void fillOpCodeTable() {
 	}
 }
 
-int containsOperation(char* operand) {
-	if (getOperationIndex(operand) != -1)
+int containsMnemonic(char* operand) {
+	if (getMnemonicIndex(operand) != -1)
 		return 1;
 	else
 		return 0;
 }
 
-int getOperationIndex(char* operand) {
+int getMnemonicIndex(char* operand) {
 	for (int i = 0; i < OPCOUNT_COUNT; i++)
 		if (strcmp(opCodeTbl[i].key, operand) == 0)
 			return i;

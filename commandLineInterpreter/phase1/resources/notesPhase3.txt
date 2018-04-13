@@ -1,0 +1,152 @@
+called immediately after pass 1
+
+intermediate file + symbol table + opcode table
+->
+object file and listing file
+
+---object file (ready to be loaded by the load proc)
+-specs?
+
+---listing file
+//for every line
+source line (with comments)
+generated object code
+load address of the statement
+error messages
+//at end
+a listing of the symbol table 
+
+NOTE: the object file should not be generated if an error is found
+
+Deliverables
+1. a documented source listing
+2. two listing of assembler language source files (one with errors, one with no errors)
+3. a copy of the listing file and the object files generated for both
+4. a copy of this should be in the 3334/phase3 directory
+
+/*
+-----CLASS NOTES
+Example Conversion
+Source: 
+COPY START 1000
+FIRST STL RETADR
+Intermediate:
+"source line"
+1000
+14
+RETADR
+null
+Listing file:
+line	loc			obj code	Source with comment
+5		1000		141033		FIRST STL RETADR 		SAVE RETURN ADDRESS
+object code:
+T00'1000'1e'141033...
+
+OPCODE (from reading operation)[8] | INDEX BIT (from reading op)[1] | ADDRESS (from RETADR)[15]
+3 record types (1)Header[once] (2)Text[multiple times until limit ???] (3)End[once]
+for header record NAME(6) | LOAD ADDRESS(6) | LENGTH(6)
+for text record ADDRESS(6) | SIZE (2) | INSTRUCT/DATA (<= 60)
+
+if ',x' set index bit
+strip off ',x'
+look up operand in symbol table
+get address
+
+
+-----PSUEDOCODE
+read first input line from intermediate file
+if OPCODE = ‘START’ then
+{  
+	write listing line
+	read next input line 
+}
+write header record to object file
+initialize first text record
+while OPCODE != ‘END’ do
+{  
+	if this is not a comment line then
+	//---
+	search OPTAB for OPCODE
+	if found then
+	{  
+		if there is a symbol in OPERAND field then
+		{  
+			search SYMTAB for OPERAND
+		   if found then
+				store symbol value as operand address
+		    else 
+				store 0 as operand address
+				set error flag (undefined symbol)
+		}
+	    else if OPCODE = ‘BYTE’ or ‘WORD’ then
+			convert constant to object code
+	}
+	if object code will not fit into current text record then
+	{  
+		write text record to object file
+	    initialize new text record 
+    }
+	add object code to text record
+	//---
+   	write listing line
+   	read next input line 
+}
+write last text record to object file
+write end record to object file
+write last listing line
+
+-----QUESTION TO ASK
+do we have to play for SIC/XE instructions now?
+	IF SO (check ppt 5 for detailed additions)
+
+---------------THINGS TO WATCH OUT FOR---------------
+
+----------DONE IN PASS 1----------
+
+LABEL SPECIFIC-----
+-Illegal format in label field
+-Duplicate label definition
+-Too many symbols in source program
+
+OPERATION SPECIFIC-----
+-Missing operation code
+-Unrecognized operation code (I assume as in not a directive and not a mnemonic)
+-Illegal format in operation field (I assume as in not a directive and not a mnemonic)
+
+DIRECTIVE SPECIFIC-----
+---START
+-Missing or misplaced START statement
+-Duplicate or misplaced START statement
+-Illegal operand in START statement
+-Missing or misplaced operand in START statement
+---BYTE
+-Missing or misplaced operand in BYTE statement
+-Illegal operand in BYTE statement 
+-Odd length hex string in BYTE statement
+---WORD
+-Missing or misplaced operand in WORD statement
+-Illegal operand in WORD statement
+---RESB
+-Missing or misplaced operand in RESB statement
+-Illegal operand in RESB statement
+---RESW
+-Missing or misplaced operand in RESW statement
+-Illegal operand in RESW statement
+---END
+-Missing or misplaced operand in END statement
+-Illegal operand in END statement
+
+OTHER-----
+-Program too long (32767)
+
+----------DONE IN PASS 2----------
+
+-check if the label that we want to address... is a valid label...
+-check if the label that we want to address... exists...
+
+OPERATION SPECIFIC-----
+
+-Illegal operand field 
+-Missing or misplaced operand in instruction
+-Undefined symbol in operand
+*/

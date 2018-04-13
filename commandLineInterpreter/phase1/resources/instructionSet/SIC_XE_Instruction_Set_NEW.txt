@@ -28,9 +28,9 @@ WD m 		DC 		Device specified by (m) <- (A)[rightmost byte]
 
 SIC Assembler Directives
 
-START n 	Program is to be loaded at location n (given in hexadecimal)
+START n(base 10) 	Program is to be loaded at location n (given in hexadecimal)
 END label 	Physical end of program; label is first executable program statement
 BYTE v 		Stores either character strings (C'...') or hexadecimal values (X'...')
 WORD v 		Stores the value v in a WORD
-RESB n 		Reserves space for n bytes
-RESW n 		Reserves space for n words (3n bytes)
+RESB n(base 10) 		Reserves space for n bytes
+RESW n(base 10) 		Reserves space for n words (3n bytes)

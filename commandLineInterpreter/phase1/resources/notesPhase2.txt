@@ -21,7 +21,7 @@
 *Illegal Operation
 	*cannot be found in the op table
 *Too many symbols in source program (500 symbols max)
-*comments go in intermediate file with alot of white space (just like line with just a label)
+*comments go in intermediate file with alot of white space
 *LOCCTR (aka location counter) is in hex
 	*as each statement is examined its length is added to LOCCTR (for SIC just 3 bytes, for SIX/XE it depends)
 *save #{OPERAND} as starting address

@@ -17,13 +17,15 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 ----------Error Codes (will be surround by 2 Xs... EX: x000x)
 ---Special Codes [0]
 000 -> "fileName" was not found -or- did not open properly
-010 -> no START directive found (make sure you have a legal label in front of your start directive)
-020 -> no END directive found (make sure there is some space in front of your end directive [space != label])
+010 -> no START directive found with a valid operand
+020 -> no END directive found (make sure there is some space in front of your END directive [space != label])
+030 -> START directive with invalid operand because it isn't a base 16 number (label validity not checked)
 ---Label Codes [1]
 100 -> duplicate label
 110 -> symbol table exceeded 500 label limit
 120 -> label has invalid name that starts with a digit
 130 -> label is too long
+140 -> only a label was found so we are missing an operation
 ---Mneumonic Codes [2]
 200 -> you have an extra START directive
 210 -> invalid mneumonic (operation -or- directive )
@@ -32,6 +34,7 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 310 -> operand hex number must be in bytes, so you must have an even digit count
 320 -> operand must be a number in hex
 330 -> operand label you are referencing does not exist
+340 -> operand must be a number in dec
 ---Operand Codes(for directives) [4]
 400 -> missing operand
 410 -> operand must be a number in hex
