@@ -54,6 +54,7 @@ I am Assuming:
 //2. to the intermediate file add (pointers to Opcode Table, and pointer to Symbol Table)
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
 //4. remove arbitrary limitations
+//5. code "itoa16" to actually convert an integer into HEX representation
 
 #pragma region Library Includes
 
@@ -93,34 +94,41 @@ I am Assuming:
 
 #pragma region Helper Function Prototypes
 
-int isEmpty(char* charArray);
-char* returnEmptyString();
-
-//---integer to string
-char* reverse(char* str, int length);
-char* itoa16(int num);
-char* itoa10(int num);
-
-//---other prototypes
-int validLabel(char* label);
-int labelFound(char* line);
-int isDirective(char* mneumonic);
-int isNumber10(char* num);
-int isNumber16(char* num);
-char* strCat(char* startValue, char* addition);
-
-//---prototypes for string processing
-void stringToLower(char** l);
-char* processFirst(char** l);
-char* processRest(char** l);
-char* stringCopy(char* str);
+//---GENERAL String Processing Prototypes (require repairs)
+char* stringCopy(char* str); //NOTE: this could use substring but substring is giving me problems
 char* subString(char* src, int srcIndex, int strLength);
 void subStringRef(char** source, int srcIndex, int strLength);
+
+//---SPECIFIC String Processing Prototypes (require repairs)
+char* processFirst(char** l);
+char* processRest(char** l);
 int removeSpacesFront(char** l);
 int removeSpacesBack(char** l);
-int isBlankLine(char* line);
 
-//---protoypes for symbol table
+//---Integer To String Prototypes
+char* reverse(char* str);
+char* itoa10(int num);
+char* itoa16(int num); //TODO... implement
+
+//---Helper Prototypes
+char* returnEmptyString();
+void stringToLower(char** l);
+char* strCat(char* startValue, char* addition);
+
+//---Error Checking Prototypes
+//for line
+int isBlankLine(char* line);
+int isEmpty(char* charArray);
+//for label
+int isLabel(char* line);
+int isValidLabel(char* label);
+//for mnemonic
+int isDirective(char* mneumonic);
+//for operand
+int isNumber10(char* num);
+int isNumber16(char* num);
+
+//---Symbol Table Prototypes
 int addSYMTBL(char* key, int value);
 //NOTE: no removal function needed (for now)
 int setSYMTBL(char* key, int value);
@@ -130,10 +138,10 @@ int containsValueSYMTBL(int value);
 int getValueIndexSYMTBL(int value);
 void printSymbolTable();
 
-//---prototypes for opcode table
+//---OpCode Table Prototypes
 void buildOpCodeTable();
-int containsMnemonic(char* operand);
-int getMnemonicIndex(char* operand);
+int containsOpCode(char* operand);
+int getOpCodeIndex(char* operand);
 void printOpCodeTable();
 
 #pragma endregion
@@ -165,11 +173,15 @@ charToChar opCodeTbl[MAX_OPCODES];
 
 void pass1(char* filename)
 {
+	//avoid a silly error
+	if (isEmpty(filename))
+		filename = returnEmptyString();
+
 	//---Vars to Pass to Pass 2
 	//symbol table (global)
 	//opcode table (global)
-	char* programFirstLabel;
-	char* programLastLabel;
+	char* programFirstLabel = returnEmptyString();
+	char* programLastLabel = returnEmptyString();
 	int programLength = 0; //required for the begining of pass 2
 
 						   //---Debugging Tools
@@ -213,7 +225,7 @@ void pass1(char* filename)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
 
 										  //we did not find a white space(potential label)
-				if (labelFound(lineCopy) == 1)
+				if (isLabel(lineCopy) == 1)
 				{
 					label = processFirst(&lineCopy);
 					printf("label b4: '%s'\n", label);
@@ -297,7 +309,7 @@ void pass1(char* filename)
 							//---Check For Operation
 
 							char *tempLine = stringCopy(line);
-							if (labelFound(tempLine) == 1)
+							if (isLabel(tempLine) == 1)
 								label = processFirst(&tempLine); //we are guaranteed to find atleast something
 							else
 								label = returnEmptyString();
@@ -349,7 +361,7 @@ void pass1(char* filename)
 								if (writeIntermediateFile == 1)
 								{
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-									fputs(strCat(itoa16(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
+									fputs(strCat(itoa10(LOCCTR - locctrAddition), "\n"), ourIntermediateFile); //[2] (LOCCTR - locctrAddition)
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
 									fputs(strCat(operation, "\n"), ourIntermediateFile); //[4]
 									fputs(strCat(operand, "\n"), ourIntermediateFile); //[5] (operation code)
@@ -384,7 +396,7 @@ void pass1(char* filename)
 								if (writeIntermediateFile == 1)
 								{
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2]
+									fputs(strCat(itoa10(LOCCTR), "\n"), ourIntermediateFile); //[2]
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
 									fputs("\n\n\n", ourIntermediateFile); //[4] -> [6] (operation, operand, comment)
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
@@ -461,16 +473,19 @@ void pass1(char* filename)
 		}
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
+
+		printf("finished PASS 1\n");
+
+		pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
 	}
 	else //INTERMEDIATE did not open properly
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 
-	printf("finished PASS 1\n");
-
-	pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
+	//NOTE: we cant start pass 2 unless at the very least the intermediate file opened properly in pass 1
 }
 
-//-------------------------THE MEAT OF PASS 1-------------------------
+//-------------------------THE MEAT-------------------------
+
 int* processFullInstruction(
 	char **_line, char **_label, char **_operation, char **_operand, char **_errors,
 	int LOCCTR, int locctrAddition, int startFound, int endFound //4
@@ -483,14 +498,14 @@ int* processFullInstruction(
 
 	//-------------------------LABEL FIELD-------------------------
 
-	if (labelFound(line) == 1) //we have a label
+	if (isLabel(line) == 1) //we have a label
 	{
 		label = processFirst(&line);
 		if (isEmpty(label) == 1)
 			label = returnEmptyString();
 		else //we have some sort of label
 		{
-			int validResult = validLabel(label);
+			int validResult = isValidLabel(label);
 			int addResult;
 			switch (validResult)
 			{
@@ -519,7 +534,7 @@ int* processFullInstruction(
 
 	//-------------------------OPERATION FIELD-------------------------
 
-	int result = getMnemonicIndex(operation);
+	int result = getOpCodeIndex(operation);
 	char* operationCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
 
 	if (result != -1) //we have this mnemonic
@@ -562,7 +577,7 @@ int* processFullInstruction(
 
 				//---Check to see what the "rawOperand" is
 
-				if (validLabel(rawOperand) != 1)
+				if (isValidLabel(rawOperand) != 1)
 				{
 					if (isNumber16(operand) == 1)
 					{
@@ -744,150 +759,63 @@ int* processFullInstruction(
 
 #pragma region HELPER FUNCTIONS
 
-//-------------------------EXTRA PROCS-------------------------
+//-------------------------GENERAL String Processing Functions-------------------------
 
-int isEmpty(char* charArray)
-{
-	if (strcmp(charArray, "") == 0 || charArray[0] == '\0')
-		return 1;
-	else
-		return 0;
-}
+char* stringCopy(char* str) {
 
-char* returnEmptyString()
-{
-	char* aStr = malloc(sizeof(char));
-	aStr[0] = '\0';
-	return aStr;
-}
+	int useSubstring = 0;
 
-//----------Integer to String
-
-char* reverse(char* str, int length)
-{
-	char* strCopy = stringCopy(str);
-
-	int index = 0;
-	int index2 = length - 1;
-
-	while (index < length) {
-		strCopy[index] = str[index2];
-		index++;
-		index2--;
-	}
-
-	return strCopy;
-}
-
-char* itoa16(int num)
-{
-	char *ret;
-
-	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
-	if (num == 0)
-	{
-		ret = malloc(2 * sizeof(char));
-		ret[0] = '0';
-		ret[1] = '\0';
-		return ret;
-	}
+	if (useSubstring == 1)
+		return subString(str, 0, strlen(str));
 	else
 	{
-		int isNeg = 0;
-		if (num < 0) {
-			num *= -1; //make the number positive
-			isNeg = 1;
-		}
-
-		//process the number (this is now guaranteed positive)
-
-		//get size of this number so we can properly allocate space
-		int digits = 0;
-		int numCopy = num;
-		while ((numCopy / 10) != 0) {
-			digits++;
-			numCopy = numCopy / 10; //remove the last digit
-		}
-
-		ret = malloc(digits * sizeof(char));
-
-		// Process individual digits
-		int index = 0;
-		while (num != 0)
-		{
-			int rem = num % 10;
-			ret[index] = (rem > 9) ? ((rem - 10) + 'a') : (rem + '0');
-			index++;
-			num = num / 10;
-		}
-
-		ret[index] = '\0'; // Append string terminator  
-
-		ret = reverse(ret, index); // Reverse the string
-
-								   //add negative sign
-		if (isNeg == 1)
-			ret = strCat("-", ret);
-
-		return ret;
+		char* newStr = malloc((strlen(str) + 1) * sizeof(char));
+		for (int i = 0; i < strlen(str); i++)
+			newStr[i] = str[i];
+		newStr[strlen(str)] = '\0';
+		return newStr;
 	}
 }
 
-char* itoa10(int num)
-{
-	char *ret;
+char* subString(char* src, int srcIndex, int strLength) {
 
-	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
-	if (num == 0)
-	{
-		ret = malloc(2 * sizeof(char));
-		ret[0] = '0';
-		ret[1] = '\0';
-		return ret;
+	int srcI = srcIndex;
+	int destI = 0;
+
+	char* dest = malloc(strlen(src) * sizeof(char));
+
+	while (strLength > 0) {
+		strLength--;
+		dest[destI] = src[srcI];
+		destI++;
+		srcI++;
 	}
-	else
-	{
-		int isNeg = 0;
-		if (num < 0) {
-			num *= -1; //make the number positive
-			isNeg = 1;
-		}
 
-		//process the number (this is now guaranteed positive)
+	int nullTermIndex = min(strlen(src) - 2, destI);
+	dest[nullTermIndex] = '\0';
 
-		//get size of this number so we can properly allocate space
-		int digits = 0;
-		int numCopy = num;
-		while ((numCopy / 10) != 0) {
-			digits++;
-			numCopy = numCopy / 10; //remove the last digit
-		}
-
-		ret = malloc(digits * sizeof(char));
-
-		// Process individual digits
-		int index = 0;
-		while (num != 0)
-		{
-			int rem = num % 10;
-			ret[index] = (rem + '0'); //(rem > 9) ? (rem - 10) + 'a' : rem + '0';
-			index++;
-			num = num / 10;
-		}
-
-		ret[index] = '\0'; // Append string terminator  
-
-		ret = reverse(ret, index); // Reverse the string
-
-								   //add negative sign
-		if (isNeg == 1)
-			ret = strCat("-", ret);
-
-		return ret;
-	}
+	return dest;
 }
 
-//----------Handle Tockenizing
+void subStringRef(char** source, int srcIndex, int strLength) { //pass src by reference... it will be returned by reference
+
+	char* src = *source;
+
+	int srcI = srcIndex;
+	int destI = 0;
+
+	while (strLength > 0) {
+		strLength--;
+		src[destI] = src[srcI];
+		destI++;
+		srcI++;
+	}
+
+	int nullTermIndex = min(strlen(src) - 2, destI);
+	src[nullTermIndex] = '\0';
+}
+
+//-------------------------SPECIFIC String Processing Functions-------------------------
 
 char* processFirst(char** l) //actually return our first word found, by reference "return" the line
 {
@@ -944,141 +872,10 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 		return returnEmptyString();
 }
 
-//-------------------------Other Functions 
-
-int labelFound(char* line) {
-	if (isspace(line[0]) == 0)
-		return 1;
-	else
-		return 0;
-}
-
-int validLabel(char* label) { //1 is true, 0 is false because first value is not digit, -1 is false because it too long
-	if (strlen(label) < MAX_SYMBOL_SIZE) {
-		if (isdigit(label[0]) == 0)
-			return 1;
-		else
-			return 0;
-	}
-	else
-		return -1;
-}
-
-int isNumber10(char* num) {
-	for (int i = 0; i < strlen(num); i++)
-		if (isdigit(num[i]) == 0)
-			return 0;
-	return 1;
-}
-
-int isNumber16(char* num) {
-	for (int i = 0; i < strlen(num); i++)
-		if (isxdigit(num[i]) == 0)
-			return 0;
-	return 1;
-}
-
-char* strCat(char* startValue, char* addedValue)
-{
-	int newLength = (strlen(startValue) + strlen(addedValue));
-	char* newString = malloc(newLength * sizeof(char));
-
-	int index = 0;
-	int startIndex = 0;
-	int addIndex = 0;
-	while (index < newLength) {
-		if (index < strlen(startValue))
-		{
-			newString[index] = startValue[startIndex];
-			startIndex++;
-		}
-		else
-		{
-			newString[index] = addedValue[addIndex];
-			addIndex++;
-		}
-		index++;
-	}
-	newString[newLength] = '\0';
-
-	return newString;
-}
-
-//inefficient but clean up code nicely
-int isDirective(char* mneumonic) {
-	if (strcmp(mneumonic, "start") == 0)
-		return 1;
-	else if (strcmp(mneumonic, "end") == 0)
-		return 1;
-	else if (strcmp(mneumonic, "byte") == 0)
-		return 1;
-	else if (strcmp(mneumonic, "word") == 0)
-		return 1;
-	else if (strcmp(mneumonic, "resb") == 0)
-		return 1;
-	else if (strcmp(mneumonic, "resw") == 0)
-		return 1;
-	else
-		return 0;
-}
-
-//-------------------------String Parsing and Tokenizing Functions 
-
 char* processRest(char** l) { //remove spaces in front of the line that its passed... return a new string that is exactly the same as the string passed without spaces
 	char* line = *l;
 	removeSpacesFront(&line);
 	return stringCopy(line);
-}
-
-char* stringCopy(char* str) {
-
-	return subString(str, 0, strlen(str));
-}
-
-void stringToLower(char** l) { //"returns" by reference
-
-	char* line = *l;
-
-	for (int i = 0; i < strlen(line); i++)
-		line[i] = tolower(line[i]);
-}
-
-char* subString(char* src, int srcIndex, int strLength) {
-
-	int srcI = srcIndex;
-	int destI = 0;
-
-	char* dest = malloc(strlen(src) * sizeof(char));
-
-	while (strLength > 0) {
-		strLength--;
-		dest[destI] = src[srcI];
-		destI++;
-		srcI++;
-	}
-
-	int nullTermIndex = min(strlen(src) - 2, destI);
-	dest[nullTermIndex] = '\0';
-
-	return dest;
-}
-
-void subStringRef(char** source, int srcIndex, int strLength) { //pass src by reference... it will be returned by reference
-
-	char* src = *source;
-
-	int srcI = srcIndex;
-	int destI = 0;
-
-	while (strLength > 0) {
-		strLength--;
-		src[destI] = src[srcI];
-		destI++;
-		srcI++;
-	}
-
-	int nullTermIndex = min(strlen(src) - 2, destI);
-	src[nullTermIndex] = '\0';
 }
 
 int removeSpacesFront(char** l) { //returns how many spaces where removed
@@ -1120,6 +917,133 @@ int removeSpacesBack(char** l) { //"returns" by reference
 		return 0;
 }
 
+//-------------------------Integer To String Functions-------------------------
+
+char* reverse(char* str)
+{
+	char* strCopy = stringCopy(str);
+
+	int indexF2B = 0;
+	int indexB2F = strlen(str) - 1;
+
+	while (indexF2B < strlen(str)) {
+		strCopy[indexF2B] = str[indexB2F];
+		indexF2B++;
+		indexB2F--;
+	}
+
+	return strCopy;
+}
+
+char* itoa10(int num)
+{
+	char *base10Str;
+
+	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
+	if (num == 0)
+	{
+		base10Str = malloc(2 * sizeof(char));
+		base10Str[0] = '0';
+		base10Str[1] = '\0';
+		return base10Str;
+	}
+	else
+	{
+		//---REMOVE negative sign (If we have one)
+
+		int isNeg = 0;
+		if (num < 0) {
+			num *= -1; //make the number positive
+			isNeg = 1; //make it as originally negative
+		}
+
+		//---ALLOCATE space for our positive number
+
+		//get size of this number so we can properly allocate space
+		int digits = 0;
+		int numCopy = num;
+		//NOTE: we can assume that at the very least we have 1 digit
+		do { 
+			digits++;
+			numCopy = (numCopy / 10); //remove the last digit
+		} while (numCopy != 0);
+
+		base10Str = malloc((digits + 1) * sizeof(char)); //digits + null terminator
+
+		//---CONVERT our positive number
+
+		int index = 0;
+		while (num != 0)
+		{
+			int rem = num % 10;
+			base10Str[index] = (rem + '0'); //(rem > 9) ? (rem - 10) + 'a' : rem + '0';
+			index++;
+			num = num / 10;
+		}
+
+		base10Str[index] = '\0'; // Append string terminator  
+
+		base10Str = reverse(base10Str); // Reverse the string
+
+		//---ADD negative sign (if needed)
+		
+		if (isNeg == 1)
+			base10Str = strCat("-", base10Str);
+
+		return base10Str;
+	}
+}
+
+char* itoa16(int num)
+{
+	return '\0';
+}
+
+//-------------------------Helper Functions-------------------------
+
+char* returnEmptyString()
+{
+	char* aStr = malloc(sizeof(char));
+	aStr[0] = '\0';
+	return aStr;
+}
+
+void stringToLower(char** l) { //"returns" by reference
+
+	char* line = *l;
+
+	for (int i = 0; i < strlen(line); i++)
+		line[i] = tolower(line[i]);
+}
+
+char* strCat(char* firstString, char* lastString)
+{
+	int newLength = (strlen(firstString) + strlen(lastString)); //EX: 4 + 3 = 7 chars
+	char* newString = malloc((newLength + 1) * sizeof(char)); //EX: allocate 7 slots (+ 1 for null terminator)
+
+	int index = 0;
+	int firstStringIndex = 0;
+	int lastStringIndex = 0;
+	while (index < newLength) { //EX: 7 chars indices 0 -> 6 [7]
+		if (index < strlen(firstString)) //EX: 4 chars indices 0 -> 3 [4]
+		{
+			newString[index] = firstString[firstStringIndex];
+			firstStringIndex++;
+		}
+		else
+		{
+			newString[index] = lastString[lastStringIndex];
+			lastStringIndex++;
+		}
+		index++;
+	}
+	newString[newLength] = '\0'; //at last index insert null terminator
+
+	return newString;
+}
+
+//-------------------------Error Checking Functions-------------------------
+
 int isBlankLine(char* line) {
 	for (int i = 0; i < strlen(line); i++)
 		if (isspace(line[i]) == 0)
@@ -1127,7 +1051,67 @@ int isBlankLine(char* line) {
 	return 1;
 }
 
-//-------------------------Symbol Table Functions (Symbol | Location)
+
+int isEmpty(char* charArray) //we only have a null terminator
+{
+	if (strcmp(charArray, "") == 0 || charArray[0] == '\0')
+		return 1;
+	else
+		return 0;
+}
+
+int isLabel(char* line) {
+	if (isspace(line[0]) == 0)
+		return 1;
+	else
+		return 0;
+}
+
+int isValidLabel(char* label) { //1 is true, 0 is false because first value is not digit, -1 is false because it too long
+	if (strlen(label) < MAX_SYMBOL_SIZE) {
+		if (isdigit(label[0]) == 0)
+			return 1;
+		else
+			return 0;
+	}
+	else
+		return -1;
+}
+
+//inefficient but clean up code nicely
+int isDirective(char* mneumonic) {
+	if (strcmp(mneumonic, "start") == 0)
+		return 1;
+	else if (strcmp(mneumonic, "end") == 0)
+		return 1;
+	else if (strcmp(mneumonic, "byte") == 0)
+		return 1;
+	else if (strcmp(mneumonic, "word") == 0)
+		return 1;
+	else if (strcmp(mneumonic, "resb") == 0)
+		return 1;
+	else if (strcmp(mneumonic, "resw") == 0)
+		return 1;
+	else
+		return 0;
+}
+
+int isNumber10(char* num) {
+	for (int i = 0; i < strlen(num); i++)
+		if (isdigit(num[i]) == 0)
+			return 0;
+	return 1;
+}
+
+int isNumber16(char* num) {
+	for (int i = 0; i < strlen(num); i++)
+		if (isxdigit(num[i]) == 0)
+			return 0;
+	return 1;
+}
+
+
+//-------------------------Symbol Table Functions (Symbol | Location)-------------------------
 
 int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be set, -1 if symbolTbl full
 
@@ -1198,7 +1182,7 @@ void printSymbolTable() {
 	printf("\n");
 }
 
-//-------------------------Op Code Table Functions (Symbol | Location)
+//-------------------------Op Code Table Functions (Operation | OpCode)-------------------------
 
 void buildOpCodeTable() {
 
@@ -1272,21 +1256,17 @@ void buildOpCodeTable() {
 		//assign values to dictionary
 		opCodeTbl[index].key = theKey;
 		opCodeTbl[index].value = theValue;
-
-		//un allocate memory for temporary values (this is causing erros in linux)
-		//free(theKey);
-		//free(theValue);
 	}
 }
 
-int containsMnemonic(char* operand) {
-	if (getMnemonicIndex(operand) != -1)
+int containsOpCode(char* operand) {
+	if (getOpCodeIndex(operand) != -1)
 		return 1;
 	else
 		return 0;
 }
 
-int getMnemonicIndex(char* operand) {
+int getOpCodeIndex(char* operand) {
 	for (int i = 0; i < MAX_OPCODES; i++)
 		if (strcmp(opCodeTbl[i].key, operand) == 0)
 			return i;
