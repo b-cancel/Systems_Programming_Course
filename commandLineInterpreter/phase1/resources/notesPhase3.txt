@@ -144,6 +144,8 @@ OTHER-----
 -check if the label that we want to address... is a valid label...
 -check if the label that we want to address... exists...
 
+-get the opcode for all operations
+
 OPERATION SPECIFIC-----
 
 -Illegal operand field 
