@@ -55,6 +55,7 @@ I am Assuming:
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
 //4. remove arbitrary limitations
 //5. code "itoa16" to actually convert an integer into HEX representation
+//6. repair "subString" and "subStringRef" functions (they seem like they are working proplery but the dont because code stringCopy by using substring will give you a bad result)
 
 #pragma region Library Includes
 
@@ -88,7 +89,7 @@ I am Assuming:
 #define MAX_LOCCTR_SIZE 65535 //(FF,FF) base 16
 #define MAX_SIZE  16777215 //(FF,FF,FF) base 16
 //arbitrary limitations
-#define MAX_CHARS_PER_WORD 100
+#define MAX_CHARS_PER_INSTRUCTION_SECTION 100
 
 #pragma endregion
 
@@ -100,10 +101,10 @@ char* subString(char* src, int srcIndex, int strLength);
 void subStringRef(char** source, int srcIndex, int strLength);
 
 //---SPECIFIC String Processing Prototypes (require repairs)
-char* processFirst(char** l);
+char* processFirst(char** l); //CHECK after repairing substrings
 char* processRest(char** l);
-int removeSpacesFront(char** l);
-int removeSpacesBack(char** l);
+int removeSpacesFront(char** l); //CHECK after repairing substrings
+int removeSpacesBack(char** l); //works
 
 //---Integer To String Prototypes
 char* reverse(char* str);
@@ -129,6 +130,7 @@ int isNumber10(char* num);
 int isNumber16(char* num);
 
 //---Symbol Table Prototypes
+int resetSYMTBL();
 int addSYMTBL(char* key, int value);
 //NOTE: no removal function needed (for now)
 int setSYMTBL(char* key, int value);
@@ -200,6 +202,7 @@ void pass1(char* filename)
 		FILE *ourSourceFile = fopen(filename, "r");
 		if (ourSourceFile != NULL)
 		{
+			resetSYMTBL();
 			buildOpCodeTable();
 
 			//create the variables that will be used to read in our file
@@ -820,25 +823,24 @@ void subStringRef(char** source, int srcIndex, int strLength) { //pass src by re
 char* processFirst(char** l) //actually return our first word found, by reference "return" the line
 {
 	char* line = *l; //link up to our value (so we can pass by reference)
-	char* first = malloc(MAX_CHARS_PER_WORD * sizeof(char)); //create value (so we can pass it by value)
 
 	if (line[0] != '\0') //make sure we have a line left
 	{
-		//var init
-		int lineID = 0;
+		printf("before line '%s'\n", line);
 
-		//ignore anything that is a space
-		while (isspace(line[lineID]) != 0 && line[lineID] != '\0') {
-			lineID++;
-		}
+		removeSpacesFront(&line);
+
+		printf("after line '%s'\n", line);
 
 		//make sure we have string left to check after getting rid of all spaces
-		if (line[lineID] == '\0') {
-			line[0] = '\0'; //nothing useful is left in the line
-			return returnEmptyString();
-		}
+		if (isEmpty(line) == 1)
+			return line;
 		else
 		{
+			char* first = malloc(MAX_CHARS_PER_INSTRUCTION_SECTION * sizeof(char)); //create value (so we can pass it by value)
+
+			int lineID = 0;
+
 			//used to create both of our substring
 			int firstCharIndex = lineID;
 
@@ -846,7 +848,7 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 			int firstID = 0;
 
 			//add anything that isnt a space to our word
-			while (isspace(line[lineID]) == 0 && line[lineID] != '\0' && firstID < MAX_CHARS_PER_WORD) {
+			while (isspace(line[lineID]) == 0 && line[lineID] != '\0' && firstID < MAX_CHARS_PER_INSTRUCTION_SECTION) {
 				lineID++;
 				firstID++;
 			}
@@ -882,20 +884,25 @@ int removeSpacesFront(char** l) { //returns how many spaces where removed
 
 	char* line = *l;
 
-	//var init
-	int lineID = 0;
+	if (strlen(line) > 0) {
+		//var init
+		int lineID = 0;
 
-	//ignore anything that is a space
-	while (lineID <= strlen(line) && isspace(line[lineID]) != 0 && line[lineID] != '\0') {
-		lineID++;
+		//ignore anything that is a space
+		while (isspace(line[lineID]) != 0 && line[lineID] != '\0')
+			lineID++;
+
+		//make sure we have string left to check after getting rid of all spaces
+		if (line[lineID] == '\0')
+			line = returnEmptyString(); //nothing useful is left in the line
+		else
+			subStringRef(&line, lineID, (strlen(line) - lineID));
+		return lineID;
 	}
-
-	//make sure we have string left to check after getting rid of all spaces
-	if (line[lineID] == '\0')
-		line = '\0'; //nothing useful is left in the line
-	else
-		subStringRef(&line, lineID, (strlen(line) - lineID));
-	return lineID;
+	else {
+		line = returnEmptyString();
+		return 0;
+	}
 }
 
 //fills all available spots with null terminators (since space was probably already alocated for the string and we might use it eventually)
@@ -913,26 +920,32 @@ int removeSpacesBack(char** l) { //"returns" by reference
 		line[charID] = '\0';
 		return count;
 	}
-	else
+	else {
+		line = returnEmptyString();
 		return 0;
+	}
 }
 
 //-------------------------Integer To String Functions-------------------------
 
 char* reverse(char* str)
 {
-	char* strCopy = stringCopy(str);
+	if (strlen(str) > 0) {
+		char* strCopy = stringCopy(str);
 
-	int indexF2B = 0;
-	int indexB2F = strlen(str) - 1;
+		int indexF2B = 0;
+		int indexB2F = strlen(str) - 1;
 
-	while (indexF2B < strlen(str)) {
-		strCopy[indexF2B] = str[indexB2F];
-		indexF2B++;
-		indexB2F--;
+		while (indexF2B < strlen(str)) {
+			strCopy[indexF2B] = str[indexB2F];
+			indexF2B++;
+			indexB2F--;
+		}
+
+		return strCopy;
 	}
-
-	return strCopy;
+	else
+		return returnEmptyString();
 }
 
 char* itoa10(int num)
@@ -1012,8 +1025,14 @@ void stringToLower(char** l) { //"returns" by reference
 
 	char* line = *l;
 
-	for (int i = 0; i < strlen(line); i++)
-		line[i] = tolower(line[i]);
+	if (strlen(line) > 1) {
+		for (int i = 0; i < strlen(line); i++)
+			line[i] = tolower(line[i]);
+	}
+	else {
+		line = returnEmptyString();
+		return 0;
+	}
 }
 
 char* strCat(char* firstString, char* lastString)
@@ -1112,6 +1131,14 @@ int isNumber16(char* num) {
 
 
 //-------------------------Symbol Table Functions (Symbol | Location)-------------------------
+
+int resetSYMTBL() {
+	for (int i = 0; i < emptyIndex; i++) {
+		free(symbolTbl[i].key);
+		symbolTbl[i].value = -1;
+	}
+	emptyIndex = 0;
+}
 
 int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be set, -1 if symbolTbl full
 
