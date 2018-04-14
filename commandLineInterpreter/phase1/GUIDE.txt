@@ -19,7 +19,8 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 000 -> "fileName" was not found -or- did not open properly
 010 -> no START directive found with a valid operand
 020 -> no END directive found (make sure there is some space in front of your END directive [space != label])
-030 -> START directive with invalid operand because it isn't a base 16 number (label validity not checked)
+030 -> START directive with invalid operand because it isn't a base 16 number [label validity not checked]
+040 -> START directive with invalid operand because its larger than (FFFF) base 16 [label validity not checked]
 ---Label Codes [1]
 100 -> duplicate label
 110 -> symbol table exceeded 500 label limit
@@ -35,6 +36,8 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 320 -> operand must be a number in hex
 330 -> operand label you are referencing does not exist
 340 -> operand must be a number in dec
+350 -> operand will cause LOCCTR to overflow because its max size is FFFF
+360 -> operand is too large to be saved in a word
 ---Operand Codes(for directives) [4]
 400 -> missing operand
 410 -> operand must be a number in hex
@@ -45,6 +48,7 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 460 -> operand must be a string or hex value with marker 'c' or 'x'
 ---misc Codes [9]
 900 -> program length above 32768 byte limit
+901 -> LOCCTR is too big and should be smaller than (FFFF) base 16
 
 NOTE: you told us not to implement ERROR CODES 330 -or- 420... so they are there but will not function (for now)
 

@@ -2,6 +2,8 @@
 Programmer: Bryan Cancel
 Last Updated: 3/20/18
 
+NOTE: priority was not given to speed... priority was given to code readability and ease of use (for the programmer using this assembler)
+
 Description:
 Pass 1 will create:
 -symbol table (label, address)
@@ -22,56 +24,41 @@ Deliverable:
 5. @toplevel/3334/phase2
 with only source files in said folder
 
-TODO (from things I'm Assuming)
-#4
-
 I am Assuming:
 (1) Everything in "TODO list (maybe)" below is not a requirement
 (2) (a) intermediate file (b) listing file (c) object file -> Dont Require a Specific File Extension (using .txt)
 (3) our labels work in a global scope (we dont need to check for scoping rules)
 (4) this "{label} operation {operand{,X}} {comment}") format must always be followed [so we cannot have a line with JUST a label]
-(5) we dont have to process our LABELS until pass 2 (eventhough we can technically process the ones that are backwards references)
-(6) start and end dont add to the location counter (as shown by phase 1 psuedo code)
-(7) we ignore blank lines in code
-(8) ONLY labels can be found in column 1 of a command (NOT operations)
-(9) duplicate START directive WILL NOT change the starting address and set the location counter
-(10) duplicate label in symbol table WILL NOT update what value that symbol maps to
----
+(5) we ignore blank lines in code
+(6) ONLY labels can be found in column 1 of a command (NOT operations)
+(7) duplicate START directive WILL NOT change the starting address and set the location counter
+(8) duplicate label in symbol table WILL NOT update what value that symbol maps to
+(9) every number read in from the file including the LOCCTR is alwasy a positive number
+(10) LOCCTR cannot exceed (FFFF) base 16 -A.K.A.-(65535) base 10
 (11) we begin reading the file as code once we find a command with a (1) directive == start -AND- (2) a valid operand
 	we need (1) because otherwise we would not have found the begining of our code
 	we need (2) because we set our LOCCTR to START's operand... so if it isnt valid then we cant properly use LOCCTR
 	AFTER we find this very specific instruction we start counting anything with a START directive as a duplicate and flag the duplicate error
-(12) numbers in HEX have no specific restrictions on either (1) length or (2) evenness... unless specifically instructed
-(13) WORD operand has no restrictions
-(14) the operand of START should be a number in base 16 EVENTHOUGH it has the same arbitrary type "n" and RESB and RESW and they both have base 10 operands given the book
+(12) START must have a Label in front of it
+(13) operations ONLY add to the LOCCTR when they should IF the instruction did not cause any errors
+---
+(14) the hex number passed by START... DOES NOT have to be even lengthed
+(15) there is no max size for a HEX number found that is the operand of a mnemonic
+(16) the operand of START should be a number in base 16 EVENTHOUGH it has the same arbitrary type "n" and RESB and RESW and they both have base 10 operands given the book [make things easier]
+(17) we dont handle 'operand,x' format as an operand of an mnemonic in any special way
+(18) program first label and program last label are set regardless of whether or not the label is valid (of course if it is not valid then an error will show up)
 */
-
-//TODO list (must)
-//1. remove limit MAX_CHARS_PER_WORD
-//2. repair "itoa16" to actually function
-//3. write the location counter and as a HEX number onto the intermediate file
 
 //TODO list (maybe)
 //1. to the symbol table add (scope info, type[of what?], length[of what?])
 //2. to the intermediate file add (pointers to Opcode Table, and pointer to Symbol Table)
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
-//4. get reliable length from getline
-//5. improve "removeSpacesBack" to also remove the newline character [it should be doing this now but my prints indicate it isnt]
+//4. remove arbitrary limitations
+
+#pragma region Library Includes
 
 #pragma once
-
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-
-//constants that will be used throughout code
-#define MAX_PROGRAM_SIZE  32767
-#define MAX_CHARS_PER_WORD 100
-#define MAX_SYMBOLS 500
-#define MAX_SYMBOL_SIZE 7 //6 spots and null terminator
-#define OPCOUNT_COUNT 25
-#define MAX_OPERATION_SIZE 5 //4 spots and null terminator
-#define MAX_OPCODE_SIZE 3 //2 spots and null terminator
-#define MAX_DIRECTIVE_SIZE 6 //5 spots and null terminator
-#define MAX_ERROR_CHARACTERS 125 //24 errors (in do while loop) in total * 5 characters each =aprox= 125 (this will flat out never happen)
+#include "pass2.h"
 
 //sic engine tie in
 #include "sic.h"
@@ -82,16 +69,32 @@ I am Assuming:
 #include <ctype.h>
 #include <assert.h>
 
+#pragma endregion
+
+#pragma region Constants
+
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+
+//explicit limitations
+#define MAX_SYMBOLS 500
+#define MAX_OPCODES 25
+#define MAX_PROGRAM_SIZE  32767
+#define MAX_SYMBOL_SIZE 7 //6 spots and null terminator
+#define MAX_OPCODE_SIZE 3 //2 spots and null terminator
+//implicit limitations
+#define MAX_OPERATION_SIZE 5 //4 spots and null terminator
+#define MAX_DIRECTIVE_SIZE 6 //5 spots and null terminator
+#define MAX_LOCCTR_SIZE 65535 //(FF,FF) base 16
+#define MAX_SIZE  16777215 //(FF,FF,FF) base 16
+//arbitrary limitations
+#define MAX_CHARS_PER_WORD 100
+
+#pragma endregion
+
+#pragma region Helper Function Prototypes
+
 int isEmpty(char* charArray);
 char* returnEmptyString();
-
-void testing(FILE **_ourIntermediateFile);
-
-//---meat of program
-int* processFullInstruction(
-char **_line, char **_label, char **_operation, char **_operand, char **_errors,
-int LOCCTR, int locctrAddition, int startFound, int endFound //4
-);
 
 //---integer to string
 char* reverse(char* str, int length);
@@ -133,6 +136,16 @@ int containsMnemonic(char* operand);
 int getMnemonicIndex(char* operand);
 void printOpCodeTable();
 
+#pragma endregion
+
+#pragma region Main Program
+
+//---meat of program
+int* processFullInstruction(
+	char **_line, char **_label, char **_operation, char **_operand, char **_errors,
+	int LOCCTR, int locctrAddition, int startFound, int endFound //4
+);
+
 //---Symbol Table Global Vars
 typedef struct charToInt keyToValue;
 struct charToInt {
@@ -148,22 +161,28 @@ struct charToChar {
 	char* key; //size 5 as set by constant
 	char* value; //size 2 as set by constant
 };
-charToChar opCodeTbl[OPCOUNT_COUNT];
+charToChar opCodeTbl[MAX_OPCODES];
 
 void pass1(char* filename)
 {
+	//---Vars to Pass to Pass 2
+	//symbol table (global)
+	//opcode table (global)
+	char* programFirstLabel;
+	char* programLastLabel;
 	int programLength = 0; //required for the begining of pass 2
 
-	//---Debugging Tools
+						   //---Debugging Tools
 	int printIntermediateFile = 0; //1 to print, 0 to not print
 	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
+	printf("Source File: '%s'\n", filename);
 	//place INTERMEDIATE in stream, make sure INTERMEDIATE file opens for writing properly
 	char* interFileName = strCat(subString(filename, 0, strlen(filename) - 4), "Intermediate.txt");
 	printf("Intermediate File: '%s'\n", interFileName);
 
-	FILE *ourIntermediateFile = fopen(strCat("./",interFileName), "w"); //wipes out the file
-	if (ourIntermediateFile != NULL) 
+	FILE *ourIntermediateFile = fopen(strCat("./", interFileName), "w"); //wipes out the file
+	if (ourIntermediateFile != NULL)
 	{
 		//place SOURCE in stream, make sure SOURCE file opens for reading properly
 		FILE *ourSourceFile = fopen(filename, "r");
@@ -193,35 +212,48 @@ void pass1(char* filename)
 				char *lineCopy = stringCopy(line); //make a copy of the line (because the actual line should be processed below)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
 
-				//we did not find a white space(potential label)
-				if (labelFound(lineCopy) == 1) 
+										  //we did not find a white space(potential label)
+				if (labelFound(lineCopy) == 1)
 				{
 					label = processFirst(&lineCopy);
+					printf("label b4: '%s'\n", label);
 					if (isEmpty(label) != 1)
 					{
 						operation = processFirst(&lineCopy);
 						if (isEmpty(operation) != 1)
 						{
-							if (strcmp(operation, "start") == 0) 
+							if (strcmp(operation, "start") == 0)
 							{
 								//NOTE: this is required here simply so that we can map the name of the file properly to the LOCCTR when we process the label
 								operand = processFirst(&lineCopy);
 
 								if (isEmpty(operand) != 1)
 								{
-									if (isNumber16(operand) == 1) //is number
+									if (isNumber16(operand) == 1) //is hex number
 									{
-										startingAddress = strtol(operand, NULL, 16);
-										LOCCTR = startingAddress; //init LOCCTR to starting address
-										startFound = 1; //we have located our first START directive that has a VALID operand
+										int num = strtol(operand, NULL, 16);
+										if (num <= MAX_LOCCTR_SIZE)
+										{
+											startingAddress = num;
+											LOCCTR = startingAddress; //init LOCCTR to starting address
+											startFound = 1; //we have located our first START directive that has a VALID operand
+										}
+										else
+										{
+											//SPECIAL ERROR [8 lines] (no valid operand for start directive because the one read in is too large)
+											if (printIntermediateFile == 1)
+												printf("%s\n\n\n\n\n\nx040x\n\n", line);
+											if (writeIntermediateFile == 1)
+												fputs(strCat(line, "\n\n\n\n\n\nx040x\n\n"), ourIntermediateFile);
+										}
 									}
 									else //ELSE... we dont have a hex number
 									{
-										//SPECIAL ERROR [8 lines] (no end directive)
+										//SPECIAL ERROR [8 lines] (no valid hex operand for start directive)
 										if (printIntermediateFile == 1)
-											printf("\n\n\n\n\n\nx030x\n\n");
+											printf("%s\n\n\n\n\n\nx030x\n\n", line);
 										if (writeIntermediateFile == 1)
-											fputs("\n\n\n\n\n\nx030x\n\n", ourIntermediateFile);
+											fputs(strCat(line, "\n\n\n\n\n\nx030x\n\n"), ourIntermediateFile);
 									}
 								}
 								//ELSE... we have a missing operand we cannot continue
@@ -237,6 +269,9 @@ void pass1(char* filename)
 				//ELSE... we have not found label in our line... we cannot find START
 			}
 
+			printf("label af: '%s'\n", label);
+			programFirstLabel = stringCopy(label);
+
 			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
 			if (startFound == 1) {
 
@@ -245,12 +280,11 @@ void pass1(char* filename)
 				int endFound = 0;
 
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
-				do 
+				do
 				{
-					char* errors = malloc(MAX_ERROR_CHARACTERS * sizeof(char));
-					errors = returnEmptyString();
+					char* errors = returnEmptyString();
 
-					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (with case sensitivity) for writing it in its entirety into the intermediate file
+					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (WITH case sensitivity) for writing it in its entirety into the intermediate file
 					origLine = stringCopy(line);
 					stringToLower(&line); //remove case sensitivity
 
@@ -263,13 +297,11 @@ void pass1(char* filename)
 							//---Check For Operation
 
 							char *tempLine = stringCopy(line);
-							if (labelFound(tempLine) == 1) {
-								label = processFirst(&tempLine);
-								if (isEmpty(label) == 1)
-									label = returnEmptyString();
-							}
+							if (labelFound(tempLine) == 1)
+								label = processFirst(&tempLine); //we are guaranteed to find atleast something
 							else
 								label = returnEmptyString();
+
 							operation = processFirst(&tempLine);
 
 							if (isEmpty(operation) != 1) //we have an operation
@@ -278,15 +310,14 @@ void pass1(char* filename)
 
 								int *newVars = malloc(4 * sizeof(int));
 
-								printf("OPERAND B4 PROCESS %s\n", operand);
-
 								//grab new vars after running function
 								newVars = processFullInstruction(
 									&line, &label, &operation, &operand, &errors,
 									LOCCTR, locctrAddition, startFound, endFound
 								);
 
-								printf("OPERAND B4 PRINT %s\n\n", operand);
+								if (strcmp(operation, "end") == 0)
+									programLastLabel = operand;
 
 								//set new vars after running function
 								LOCCTR = newVars[0]; locctrAddition = newVars[1]; startFound = newVars[2]; endFound = newVars[3];
@@ -298,6 +329,8 @@ void pass1(char* filename)
 								programLength = (LOCCTR - startingAddress);
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCat(errors, "x900x"); //program is too long
+								if (LOCCTR > MAX_LOCCTR_SIZE)
+									errors = strCat(errors, "x901x");
 
 								comment = processRest(&line);
 								errors = strCat(errors, "\0"); //add a null terminator to errors
@@ -334,6 +367,8 @@ void pass1(char* filename)
 								programLength = (LOCCTR - startingAddress);
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCat(errors, "x900x"); //program is too long
+								if (LOCCTR > MAX_LOCCTR_SIZE)
+									errors = strCat(errors, "x901x");
 
 								errors = strCat(errors, "\0"); //add a null terminator to errors
 
@@ -342,16 +377,16 @@ void pass1(char* filename)
 									printf("%s\n", origLine); //[1]
 									printf("%x\n", LOCCTR); //[2]
 									printf("%s\n", label); //[3]
-									printf("\n\n\n"); //[4] -> [6]
+									printf("\n\n\n"); //[4] -> [6] (operation, operand, comment)
 									printf("%s\n", errors); //[7]
 									printf("\n"); //[\n]
 								}
 								if (writeIntermediateFile == 1)
 								{
 									fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
+									fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2]
 									fputs(strCat(label, "\n"), ourIntermediateFile); //[3]
-									fputs("\n\n\n", ourIntermediateFile); //[4] -> [6]
+									fputs("\n\n\n", ourIntermediateFile); //[4] -> [6] (operation, operand, comment)
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
 									fputs("\n", ourIntermediateFile); //[\n]
 								}
@@ -361,20 +396,10 @@ void pass1(char* filename)
 						{
 							//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
-							if (printIntermediateFile == 1) 
-							{
-								printf("%s\n", origLine); //[1]
-								printf("%x\n", LOCCTR); //[2]
-								printf("\n\n\n\n\n"); //[3] -> [7]
-								printf("\n"); //[\n]
-							}
-							if (writeIntermediateFile == 1) 
-							{
-								fputs(strCat(origLine, "\n"), ourIntermediateFile); //[1]
-								fputs(strCat(itoa16(LOCCTR), "\n"), ourIntermediateFile); //[2] (LOCCTR)
-								fputs("\n\n\n\n\n", ourIntermediateFile); //[3] -> [7]
-								fputs("\n", ourIntermediateFile); //[\n]
-							}
+							if (printIntermediateFile == 1)
+								printf("%s\n\n\n\n\n\n\n\n", origLine);
+							if (writeIntermediateFile == 1)
+								fputs(strCat(origLine, "\n\n\n\n\n\n\n\n"), ourIntermediateFile);
 						}
 					}
 					//ELSE... we ignore this blank line
@@ -384,45 +409,45 @@ void pass1(char* filename)
 				//--------------------------------------------------AFTER END -or- EOF--------------------------------------------------
 
 				//if we stoped reading the file because END was found
-				if (endFound == 0) 
+				if (endFound == 0)
 				{
 					//SPECIAL ERROR [8 lines] (no end directive)
 					if (printIntermediateFile == 1)
 						printf("\n\n\n\n\n\nx020x\n\n");
 					if (writeIntermediateFile == 1)
-						fputs("\n\n\n\n\n\nx020x\n\n", ourIntermediateFile); 
+						fputs("\n\n\n\n\n\nx020x\n\n", ourIntermediateFile);
 				}
 			}
-			else 
+			else
 			{
 				//SPECIAL ERROR [8 lines] (no START directive with a VALID operand)
 				if (printIntermediateFile == 1)
 					printf("\n\n\n\n\n\nx010x\n\n");
-				if(writeIntermediateFile == 1)
-					fputs("\n\n\n\n\n\nx010x\n\n", ourIntermediateFile); 
+				if (writeIntermediateFile == 1)
+					fputs("\n\n\n\n\n\nx010x\n\n", ourIntermediateFile);
 			}
 
 			fclose(ourSourceFile); //close our source file after reading it
 		}
-		else 
-		{ 
+		else
+		{
 			//SPECIAL ERROR [8 lines] (source did not open)
 			if (printIntermediateFile == 1)
 				printf("\n\n\n\n\n\nx000x\n\n");
 			if (writeIntermediateFile == 1)
-				fputs("\n\n\n\n\n\nx000x\n\n", ourIntermediateFile); 
+				fputs("\n\n\n\n\n\nx000x\n\n", ourIntermediateFile);
 		}
 
 		//--------------------------------------------------SYMBOL TABLE TO INTERMEDIATE FILE--------------------------------------------------
 
-		if (printIntermediateFile == 1) 
+		if (printIntermediateFile == 1)
 		{
 			printf("---Symbol Table (string -> int)\n");
 			for (int i = 0; i < emptyIndex; i++)
 				printf("'%s' maps to '%i'\n", symbolTbl[i].key, symbolTbl[i].value);
 			printf("\n");
 		}
-		if(writeIntermediateFile == 1)
+		if (writeIntermediateFile == 1)
 		{
 			fputs("---Symbol Table (string -> int)\n", ourIntermediateFile);
 			for (int i = 0; i < emptyIndex; i++) {
@@ -441,22 +466,15 @@ void pass1(char* filename)
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 
 	printf("finished PASS 1\n");
+
+	pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
 }
 
 //-------------------------THE MEAT OF PASS 1-------------------------
-
-//CALL WITH -> testing(&ourIntermediateFile);
-void testing(FILE **_ourIntermediateFile) 
-{
-	FILE *ourIntermediateFile = *_ourIntermediateFile;
-	fputs("SCIENCE IS AMAZING\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", ourIntermediateFile); //op1 
-	//fputs("SCIENCE IS AMAZING\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", *_ourIntermediateFile); //op2
-}
-
 int* processFullInstruction(
 	char **_line, char **_label, char **_operation, char **_operand, char **_errors,
 	int LOCCTR, int locctrAddition, int startFound, int endFound //4
-	)
+)
 {
 	//Link up to our variables by reference
 	char *line = *_line; char *label = *_label; char *operation = *_operation; char *operand = *_operand; char *errors = *_errors;
@@ -504,13 +522,11 @@ int* processFullInstruction(
 	int result = getMnemonicIndex(operation);
 	char* operationCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
 
-	//----------------------------------------------------------------------------------------------------
-
 	if (result != -1) //we have this mnemonic
 	{
 		//---------------MNEMONIC FOUND---------------
 
-		locctrAddition += 3; //NOTE: all mnemonic add to the location counter
+		//NOTE: all mnemonic add to the location counter BUT... we only add to it if everything is valid...
 
 		operationCode = opCodeTbl[result].value;
 
@@ -528,47 +544,65 @@ int* processFullInstruction(
 				int lastCharIndex = strlen(operand) - 1;
 				char *rawOperand;
 
-				if (operand[lastCharIndex] == 'x' && operand[lastCharIndex - 1]) //form 'operand,x'
+				//---Extract Operand (ignore ,X)
+
+				//TODO... UNTESTED...
+				if (operand[lastCharIndex] == 'x' && operand[lastCharIndex - 1] == ',') //form 'operand,x'
 				{
 					rawOperand = subString(operand, 0, strlen(operand) - 2);
 					if (isEmpty(rawOperand) == 1)
+					{
+						errors = strCat(errors, "x300x"); //missing operand
 						rawOperand = returnEmptyString();
+					}
+					//ELSE... we have the operand we require
 				}
 				else //form 'operand' 
 					rawOperand = stringCopy(operand);
 
-				if (validLabel(rawOperand) == 1)
-				{
-					//TODO... process this (LABEL)
-				}
-				else
+				//---Check to see what the "rawOperand" is
+
+				if (validLabel(rawOperand) != 1)
 				{
 					if (isNumber16(operand) == 1)
 					{
-						//if we have a HEX number that starts with A -> F
-						int secondHexDigitAtoF = (isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0) ? 1 : 0;
-						if (operand[0] == '0' && secondHexDigitAtoF)
+
+						int secondHexDigitAtoF = (isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0) ? 1 : 0; //if we have a HEX number that starts with A -> F
+						if (secondHexDigitAtoF && operand[0] == '0') //and we have a leading 0
 						{
+							//***we have a HEX number that uses a leading 0 to distinguish itself from a Label
+
 							//shift everything to the left
-							//NOTE: I would use substring but for reasons unknown it isnt working properly
+							//NOTE: I would use substring but for some unknown reason it isnt working properly for this particular scenerio
 							for (int i = 1; i <= strlen(operand); i++)
 								operand[i - 1] = operand[i];
+							operand[strlen(operand)] = '\0'; //set null terminator
 						}
+						//ELSE... our hex number could have just started with a digit 0->9
 
-						if (strlen(operand) % 2 == 0)  //if it begins with 'A' through 'F' we must have a leading '0' (to distinguish from a label)
-						{
-							//TODO... process this
-						}
-						else
-							errors = strCat(errors, "x310x"); //hex number must be in byte so you must have an even digit count
+						//---Now see if this is the type of HEX number that we want
+
+						//TODO... UNTESTED...
+						if (strlen(operand) % 2 != 0)
+							errors = strCat(errors, "x310x"); //hex number must be in bytes so you must have an even digit count
+						else //we can easily handle this operand as a HEX number
+							locctrAddition = 3;
 					}
 					else
 						errors = strCat(errors, "x320x"); //hex number required but not found
 				}
+				else //we can easily handle this operand as a label
+				{
+					locctrAddition = 3;
+					operand = returnEmptyString();
+				}
 			}
 		}
-		else //the operand field must equal something so we can print it
+		else //RSUB doesnt require an operand but the operand field must equal something so we can print it
+		{
+			locctrAddition = 3;
 			operand = returnEmptyString();
+		}
 	}
 	else //check if we have a directive
 	{
@@ -610,7 +644,7 @@ int* processFullInstruction(
 					char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are C, ', and '
 
 					if (strlen(tempOperand) <= 30) //max of 30 characters
-						locctrAddition += strlen(tempOperand); //add enough space to store this string (one spot for each character)
+						locctrAddition = strlen(tempOperand); //add enough space to store this string (one spot for each character)
 					else
 						errors = strCat(errors, "x430x"); //max of 30 chars
 				}
@@ -620,11 +654,11 @@ int* processFullInstruction(
 
 					if (strlen(tempOperand) % 2 == 0) //must be even number of digits
 					{
-						//max of 32 hex digits
-						if (strlen(tempOperand) <= 32)
+						//max of 32 hex digits... or 4 bytes... or 8 hex digits
+						if (strlen(tempOperand) <= 8)
 						{
 							if (isNumber16(tempOperand) == 1)
-								locctrAddition += (strlen(tempOperand) / 2); //add enough space to store this hex number (one spot for each byte)
+								locctrAddition = (strlen(tempOperand) / 2); //add enough space to store this hex number (one spot for each byte)
 							else
 								errors = strCat(errors, "x410x"); //must be a hex number 
 						}
@@ -637,26 +671,45 @@ int* processFullInstruction(
 				else
 					errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
 			}
-			else if (strcmp(operation, "word") == 0) //*
+			else if (strcmp(operation, "word") == 0)
 			{
-				locctrAddition += 3;
+				if (isNumber10(operand) == 1)
+				{
+					if ((strtol(operand, NULL, 10)) <= MAX_SIZE) //we will be able to store this in a word
+						locctrAddition = 3;
+					else
+						errors = strCat(errors, "x360x"); //we cant store this operand in a word (3 bytes)
+				}
+				else
+					errors = strCat(errors, "x340x"); //you need a dec number passed
+
 			}
 			else if (strcmp(operation, "resb") == 0) //Reserves space for n bytes
 			{
 				if (isNumber10(operand) == 1) //is number
-					locctrAddition += (strtol(operand, NULL, 10));
+				{
+					int newAddition = (strtol(operand, NULL, 10));
+					if (newAddition <= MAX_LOCCTR_SIZE)
+						locctrAddition = newAddition;
+					else
+						errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+				}
 				else
 					errors = strCat(errors, "x340x"); //you need a dec number passed
 			}
 			else if (strcmp(operation, "resw") == 0) //Reserves space for n words (3n bytes)
 			{
 				if (isNumber10(operand) == 1) //is number
-					locctrAddition += (strtol(operand, NULL, 10) * 3);
+				{
+					int newAddition = (strtol(operand, NULL, 10) * 3);
+					if (newAddition <= MAX_LOCCTR_SIZE)
+						locctrAddition = newAddition;
+					else
+						errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+				}
 				else
 					errors = strCat(errors, "x340x"); //you need a dec number passed
 			}
-
-			//----------------------------------------------------------------------------------------------------
 		}
 		else
 		{
@@ -666,25 +719,34 @@ int* processFullInstruction(
 			operationCode = operation;
 			errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
-			//the operand field must equal something so we can print it
+											  //the operand field must equal something so we can print it
 			operand = returnEmptyString();
 		}
 	}
 
-	//TODO... save operation Code and pass that through the "operation" variable
+	//Frankly I have no idea why this is required... 
+	//but it does what the code without this should do...
+	//edit the original variable that was passed by reference...
+	*_line = line;
+	*_operation = operationCode;
+	*_operand = operand;
+	*_errors = errors;
 
 	LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
 
-	//create array to pass integers "by reference"
-	int *newVars = malloc(4 * sizeof(6));
+							  //create array to pass integers "by reference"
+	int *newVars = malloc(4 * sizeof(int));
 	newVars[0] = LOCCTR; newVars[1] = locctrAddition; newVars[2] = startFound; newVars[3] = endFound;
-	printf("OPERAND AFTER PROCESS %s\n", operand);
 	return newVars;
 }
 
+#pragma endregion
+
+#pragma region HELPER FUNCTIONS
+
 //-------------------------EXTRA PROCS-------------------------
 
-int isEmpty(char* charArray) 
+int isEmpty(char* charArray)
 {
 	if (strcmp(charArray, "") == 0 || charArray[0] == '\0')
 		return 1;
@@ -692,7 +754,7 @@ int isEmpty(char* charArray)
 		return 0;
 }
 
-char* returnEmptyString() 
+char* returnEmptyString()
 {
 	char* aStr = malloc(sizeof(char));
 	aStr[0] = '\0';
@@ -763,7 +825,7 @@ char* itoa16(int num)
 
 		ret = reverse(ret, index); // Reverse the string
 
-		//add negative sign
+								   //add negative sign
 		if (isNeg == 1)
 			ret = strCat("-", ret);
 
@@ -817,7 +879,7 @@ char* itoa10(int num)
 
 		ret = reverse(ret, index); // Reverse the string
 
-		//add negative sign
+								   //add negative sign
 		if (isNeg == 1)
 			ret = strCat("-", ret);
 
@@ -831,7 +893,7 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 {
 	char* line = *l; //link up to our value (so we can pass by reference)
 	char* first = malloc(MAX_CHARS_PER_WORD * sizeof(char)); //create value (so we can pass it by value)
-	
+
 	if (line[0] != '\0') //make sure we have a line left
 	{
 		//var init
@@ -916,16 +978,16 @@ int isNumber16(char* num) {
 	return 1;
 }
 
-char* strCat(char* startValue, char* addedValue) 
+char* strCat(char* startValue, char* addedValue)
 {
 	int newLength = (strlen(startValue) + strlen(addedValue));
 	char* newString = malloc(newLength * sizeof(char));
-	
+
 	int index = 0;
 	int startIndex = 0;
 	int addIndex = 0;
 	while (index < newLength) {
-		if (index < strlen(startValue)) 
+		if (index < strlen(startValue))
 		{
 			newString[index] = startValue[startIndex];
 			startIndex++;
@@ -1088,10 +1150,10 @@ int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be
 
 int setSYMTBL(char* key, int value) { //returns 1 if key and value pairing found and update, 0 otherwise
 
-	
+
 	int oldValueOverwrite = getKeyIndexSYMTBL(key); //get the index of key...
 	if (oldValueOverwrite != -1) { //they key is not in our arrays
-		//old value overwritten
+								   //old value overwritten
 		symbolTbl[oldValueOverwrite].value = value;
 		return 1;
 	}
@@ -1141,13 +1203,13 @@ void printSymbolTable() {
 void buildOpCodeTable() {
 
 	int index = 0;
-	for (int index = 0; index < OPCOUNT_COUNT; index++) {
+	for (int index = 0; index < MAX_OPCODES; index++) {
 
 		//allocate memory for both values
 		opCodeTbl[index].key = malloc(MAX_OPERATION_SIZE * sizeof(char)); //allocate memory for char
 		opCodeTbl[index].value = malloc(MAX_OPCODE_SIZE * sizeof(char)); //1 space for the null terminator
 
-		//allocate memory for temporary values
+																		 //allocate memory for temporary values
 		char* theKey = malloc(MAX_OPERATION_SIZE * sizeof(char));;
 		char* theValue = malloc(2 * sizeof(char));
 
@@ -1225,7 +1287,7 @@ int containsMnemonic(char* operand) {
 }
 
 int getMnemonicIndex(char* operand) {
-	for (int i = 0; i < OPCOUNT_COUNT; i++)
+	for (int i = 0; i < MAX_OPCODES; i++)
 		if (strcmp(opCodeTbl[i].key, operand) == 0)
 			return i;
 	return -1;
@@ -1233,7 +1295,9 @@ int getMnemonicIndex(char* operand) {
 
 void printOpCodeTable() {
 	printf("---Op Code Table (string -> int)\n");
-	for (int i = 0; i < OPCOUNT_COUNT; i++)
+	for (int i = 0; i < MAX_OPCODES; i++)
 		printf("'%s' maps to '%s'\n", opCodeTbl[i].key, opCodeTbl[i].value);
 	printf("\n");
 }
+
+#pragma endregion

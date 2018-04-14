@@ -1,3 +1,31 @@
+-----QUESTION TO ASK
+do we have to play for SIC/XE instructions now?
+	IF SO (check ppt 5 for detailed additions)
+-check if the label that we want to address... is a valid label...
+-check if the label that we want to address... exists...
+-handle operand of END... which idk what it is...
+-handle operand of START... which is the name of the program...
+-hanlde ,x from buffer
+
+---assumptions
+-we dont need to check a lines Label (that was handled in pass1)
+-check every lines operation
+	-IF directive the operand has been handled already
+	-ELSE mnemonic the operand has to be handled now
+-we assume all mnemonics have an operand of form "OPERAND" or "OPERAND,X"
+	-except RSUB which has no operand
+	-OPERAND might be (1) a label (2) a HEX address
+
+-for mnemonics we need to 
+	-grab the opcode of the operation and add it to the object code
+	-make sure the label exist and grab its value to create the object code
+-for directives
+	-START, END, RESW, and RESB have no object code
+	-BYTE 
+		-C convert string to hex rep
+		-X 
+	-WORD read in operand... convert to hex... and simply buffer it infront with 0s (max length of 6 in total)
+
 called immediately after pass 1
 
 intermediate file + symbol table + opcode table
@@ -95,10 +123,6 @@ write last text record to object file
 write end record to object file
 write last listing line
 
------QUESTION TO ASK
-do we have to play for SIC/XE instructions now?
-	IF SO (check ppt 5 for detailed additions)
-
 ---------------THINGS TO WATCH OUT FOR---------------
 
 ----------DONE IN PASS 1----------
@@ -140,11 +164,6 @@ OTHER-----
 -Program too long (32767)
 
 ----------DONE IN PASS 2----------
-
--check if the label that we want to address... is a valid label...
--check if the label that we want to address... exists...
-
--get the opcode for all operations
 
 OPERATION SPECIFIC-----
 

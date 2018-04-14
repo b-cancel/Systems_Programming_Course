@@ -12,10 +12,19 @@ by:
 */
 
 #pragma once
+#include "pass1.h"
 
-void pass2()
+void pass2(char *sourceName, char * intermediateName, char **_firstLabel, char **_lastLabel, int programLength)
 {
-	printf("pass 2 is being called magically because we have its protoype in assemble.h already \n");
+	char *firstLabel = *_firstLabel;
+	char *lastLabel = *_lastLabel;
+
+	printf("source name is '%s' intermediate file name is '%s'\n", sourceName, intermediateName);
+	printf("first label is '%s', last label is '%s', and the program length is %i\n", firstLabel, lastLabel, programLength);
+
+	buildOpCodeTable();
+
+	printf("I can also access pass1 functions... symbol table and opcode table... ready to build pass 2\n");
 
 	/*
 	the listing file (that contains the result of assembly) we are creating should include
