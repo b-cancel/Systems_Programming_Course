@@ -95,15 +95,15 @@ I am Assuming:
 
 #pragma region Helper Function Prototypes
 
-//---GENERAL String Processing Prototypes (require repairs)
-char* stringCopy(char* str); //NOTE: this could use substring but substring is giving me problems
-char* subString(char* src, int srcIndex, int strLength);
-
 //---SPECIFIC String Processing Prototypes (require repairs)
 char* processFirst(char** l); //CHECK after repairing substrings
 char* processRest(char** l);
 int removeSpacesFront(char** l); //CHECK after repairing substrings
 int removeSpacesBack(char** l); //works
+
+//---GENERAL String Processing Prototypes
+char* stringCopy(char* str); 
+char* subString(char* src, int srcIndex, int strLength);
 
 //---Integer To String Prototypes
 char* reverse(char* str);
@@ -230,7 +230,6 @@ void pass1(char* filename)
 				if (isLabel(lineCopy) == 1)
 				{
 					label = processFirst(&lineCopy);
-					printf("label b4: '%s'\n", label);
 					if (isEmpty(label) != 1)
 					{
 						operation = processFirst(&lineCopy);
@@ -283,7 +282,6 @@ void pass1(char* filename)
 				//ELSE... we have not found label in our line... we cannot find START
 			}
 
-			printf("label af: '%s'\n", label);
 			programFirstLabel = stringCopy(label);
 
 			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
@@ -296,6 +294,8 @@ void pass1(char* filename)
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
 				do
 				{
+					removeSpacesBack(&line); //remove new line character
+
 					char* errors = returnEmptyString();
 
 					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (WITH case sensitivity) for writing it in its entirety into the intermediate file
@@ -467,6 +467,10 @@ void pass1(char* filename)
 			for (int i = 0; i < emptyIndex; i++) {
 				char* str = strCat(symbolTbl[i].key, " maps to ");
 				char* val = itoa10(symbolTbl[i].value);
+
+				//I literally have zip idea why this is required here when it is not required when i use the same exact itoa10 function with LOCCTR (and i dont require it)
+				val[strlen(val)-1] = ' '; 
+
 				str = strCat(str, val);
 				str = strCat(str, "\n");
 				fputs(str, ourIntermediateFile);
@@ -551,6 +555,7 @@ int* processFullInstruction(
 		if (strcmp(operation, "rsub") != 0)
 		{
 			operand = processFirst(&line);
+
 			if (isEmpty(operand) == 1)
 			{
 				errors = strCat(errors, "x300x"); //missing operand
@@ -590,10 +595,8 @@ int* processFullInstruction(
 							//***we have a HEX number that uses a leading 0 to distinguish itself from a Label
 
 							//shift everything to the left
-							//NOTE: I would use substring but for some unknown reason it isnt working properly for this particular scenerio
-							for (int i = 1; i <= strlen(operand); i++)
-								operand[i - 1] = operand[i];
-							operand[strlen(operand)] = '\0'; //set null terminator
+
+							operand = subString(operand, 1, strlen(operand) - 1);
 						}
 						//ELSE... our hex number could have just started with a digit 0->9
 
@@ -609,10 +612,7 @@ int* processFullInstruction(
 						errors = strCat(errors, "x320x"); //hex number required but not found
 				}
 				else //we can easily handle this operand as a label
-				{
 					locctrAddition = 3;
-					operand = returnEmptyString();
-				}
 			}
 		}
 		else //RSUB doesnt require an operand but the operand field must equal something so we can print it
@@ -761,44 +761,6 @@ int* processFullInstruction(
 
 #pragma region HELPER FUNCTIONS
 
-//-------------------------GENERAL String Processing Functions-------------------------
-
-char* stringCopy(char* str) {
-
-	int useSubstring = 0;
-
-	if (useSubstring == 1)
-		return subString(str, 0, strlen(str));
-	else
-	{
-		char* newStr = malloc((strlen(str) + 1) * sizeof(char));
-		for (int i = 0; i < strlen(str); i++)
-			newStr[i] = str[i];
-		newStr[strlen(str)] = '\0';
-		return newStr;
-	}
-}
-
-char* subString(char* src, int srcIndex, int strLength) {
-
-	int srcI = srcIndex;
-	int destI = 0;
-
-	char* dest = malloc(strlen(src) * sizeof(char));
-
-	while (strLength > 0) {
-		strLength--;
-		dest[destI] = src[srcI];
-		destI++;
-		srcI++;
-	}
-
-	int nullTermIndex = min(strlen(src) - 2, destI);
-	dest[nullTermIndex] = '\0';
-
-	return dest;
-}
-
 //-------------------------SPECIFIC String Processing Functions-------------------------
 
 char* processFirst(char** l) //actually return our first word found, by reference "return" the line
@@ -807,11 +769,11 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 
 	if (line[0] != '\0') //make sure we have a line left
 	{
-		printf("before line '%s'\n", line);
+		//printf("before line '%s'\n", line);
 
 		removeSpacesFront(&line);
 
-		printf("after line '%s'\n", line);
+		//printf("after line '%s'\n", line);
 
 		//make sure we have string left to check after getting rid of all spaces
 		if (isEmpty(line) == 1)
@@ -895,19 +857,44 @@ int removeSpacesBack(char** l) { //"returns" by reference
 
 	if (strlen(line) > 0) {
 		int count = 0;
-		int charID = strlen(line); //where the null terminator would be
+		int charID = strlen(line) - 1; //we skip the null terminator
 		while (charID >= 0 && isspace(line[charID]) != 0) {
 			line[charID] = '\0';
 			charID--;
 			count++;
 		}
-		line[charID] = '\0';
+		line[charID+1] = '\0';
 		return count;
 	}
 	else {
 		line = returnEmptyString();
 		return 0;
 	}
+}
+
+//-------------------------GENERAL String Processing Functions-------------------------
+
+char* stringCopy(char* str) {
+	return subString(str, 0, strlen(str));
+}
+
+char* subString(char* src, int srcStartIndex, int subStringLength) {
+
+	int srcI = srcStartIndex;
+	int destI = 0;
+
+	char* dest = malloc((subStringLength + 1) * sizeof(char)); //+1 for null terminator
+
+	while (subStringLength > 0 && srcStartIndex < strlen(src)) {
+		subStringLength--;
+		dest[destI] = src[srcI];
+		destI++;
+		srcI++;
+	}
+
+	dest[(destI + 1)] = '\0';
+
+	return dest;
 }
 
 //-------------------------Integer To String Functions-------------------------
@@ -1013,10 +1000,8 @@ void stringToLower(char** l) { //"returns" by reference
 		for (int i = 0; i < strlen(line); i++)
 			line[i] = tolower(line[i]);
 	}
-	else {
+	else
 		line = returnEmptyString();
-		return 0;
-	}
 }
 
 char* strCat(char* firstString, char* lastString)

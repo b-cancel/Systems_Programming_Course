@@ -22,7 +22,7 @@ void pass2(char *sourceName, char * intermediateName, char **_firstLabel, char *
 	printf("source name is '%s' intermediate file name is '%s'\n", sourceName, intermediateName);
 	printf("first label is '%s', last label is '%s', and the program length is %i\n", firstLabel, lastLabel, programLength);
 
-	buildOpCodeTable();
+	//buildOpCodeTable();
 
 	printf("I can also access pass1 functions... symbol table and opcode table... ready to build pass 2\n");
 
