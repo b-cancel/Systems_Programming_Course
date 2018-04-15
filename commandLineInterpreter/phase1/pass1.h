@@ -289,7 +289,7 @@ void pass1(char* filename)
 				{
 					removeSpacesBack(&line); //remove new line character
 
-					printf("----------processing '%s'\n", line);
+					//printf("----------processing '%s'\n", line);
 
 					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (WITH case sensitivity) for writing it in its entirety into the intermediate file
 					origLine = stringCopy(line);
@@ -339,12 +339,12 @@ void pass1(char* filename)
 
 								programLength = (LOCCTR - startingAddress);
 								if (programLength > MAX_PROGRAM_SIZE)
-									errors = strCat(errors, "x900x"); //program is too long
+									errors = strCatFreeFirst(&errors, "x900x"); //program is too long
 								if (LOCCTR > MAX_LOCCTR_SIZE)
-									errors = strCat(errors, "x901x");
+									errors = strCatFreeFirst(&errors, "x901x");
 
 								comment = processRest(&line);
-								errors = strCat(errors, "\0");								
+								errors = strCatFreeFirst(&errors, "\0");
 
 								if (printIntermediateFile == 1)
 								{
@@ -374,15 +374,15 @@ void pass1(char* filename)
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
 								char* errors = returnEmptyString();
-								errors = strCat(errors, "x140x");
+								errors = strCatFreeFirst(&errors, "x140x");
 
 								programLength = (LOCCTR - startingAddress);
 								if (programLength > MAX_PROGRAM_SIZE)
-									errors = strCat(errors, "x900x"); //program is too long
+									errors = strCatFreeFirst(&errors, "x900x"); //program is too long
 								if (LOCCTR > MAX_LOCCTR_SIZE)
-									errors = strCat(errors, "x901x");
+									errors = strCatFreeFirst(&errors, "x901x");
 
-								errors = strCat(errors, "\0"); //add a null terminator to errors
+								errors = strCatFreeFirst(&errors, "\0"); //add a null terminator to errors
 
 								if (printIntermediateFile == 1)
 								{
@@ -468,11 +468,8 @@ void pass1(char* filename)
 				char* symStr = strCat(symbolTbl[i].key, " maps to ");
 				char* val = itoa10(symbolTbl[i].value);
 
-				//I literally have zip idea why this is required here when it is not required when i use the same exact itoa10 function with LOCCTR (and i dont require it)
-				val[strlen(val)-1] = ' '; 
-
-				symStr = strCat(symStr, val);
-				symStr = strCat(symStr, "\n");
+				symStr = strCatFreeFirst(&symStr, val);
+				symStr = strCatFreeFirst(&symStr, "\n");
 				fputs(symStr, ourIntermediateFile);
 			}
 			fputs("\n", ourIntermediateFile);
@@ -524,13 +521,13 @@ int* processFullInstruction(
 				switch (addResult)
 				{
 				case 1: break; //no errors
-				case 0: errors = strCat(errors, "x100x"); break; //duplicate label
-				case -1: errors = strCat(errors, "x110x"); break; //symbol tbl full
+				case 0: errors = strCatFreeFirst(&errors, "x100x"); break; //duplicate label
+				case -1: errors = strCatFreeFirst(&errors, "x110x"); break; //symbol tbl full
 				default: break;
 				}
 				break;
-			case 0: errors = strCat(errors, "x120x"); break; //label starts with digit
-			case -1: errors = strCat(errors, "x130x"); break; //label is too long
+			case 0: errors = strCatFreeFirst(&errors, "x120x"); break; //label starts with digit
+			case -1: errors = strCatFreeFirst(&errors, "x130x"); break; //label is too long
 			default: break;
 			}
 		}
@@ -559,7 +556,7 @@ int* processFullInstruction(
 
 			if (isEmpty(operand) == 1)
 			{
-				errors = strCat(errors, "x300x"); //missing operand
+				errors = strCatFreeFirst(&errors, "x300x"); //missing operand
 				operand = returnEmptyString();
 			}
 			else
@@ -574,7 +571,7 @@ int* processFullInstruction(
 					rawOperand = subString(operand, 0, strlen(operand) - 2);
 					if (isEmpty(rawOperand) == 1)
 					{
-						errors = strCat(errors, "x300x"); //missing operand
+						errors = strCatFreeFirst(&errors, "x300x"); //missing operand
 						rawOperand = returnEmptyString();
 					}
 					//ELSE... we have the operand we require
@@ -603,12 +600,12 @@ int* processFullInstruction(
 						//---Now see if this is the type of HEX number that we want
 
 						if (strlen(operand) % 2 != 0)
-							errors = strCat(errors, "x310x"); //hex number must be in bytes so you must have an even digit count
+							errors = strCatFreeFirst(&errors, "x310x"); //hex number must be in bytes so you must have an even digit count
 						else //we can easily handle this operand as a HEX number
 							locctrAddition = 3;
 					}
 					else
-						errors = strCat(errors, "x320x"); //hex number required but not found
+						errors = strCatFreeFirst(&errors, "x320x"); //hex number required but not found
 				}
 				else //we can easily handle this operand as a label
 					locctrAddition = 3;
@@ -636,7 +633,7 @@ int* processFullInstruction(
 			operand = processFirst(&line);
 			if (isEmpty(operand) == 1) //missing operand
 			{
-				errors = strCat(errors, "x400x"); 
+				errors = strCatFreeFirst(&errors, "x400x");
 				//free(operand); //TODO... this should work
 				operand = returnEmptyString();
 			}
@@ -651,7 +648,7 @@ int* processFullInstruction(
 					//we know for a fact that its operand is valid
 
 					if (startFound > 1)
-						errors = strCat(errors, "x200x"); //extra start directive 
+						errors = strCatFreeFirst(&errors, "x200x"); //extra start directive 
 					startFound++;
 				}
 				else if (strcmp(operationName, "end") == 0)
@@ -667,7 +664,7 @@ int* processFullInstruction(
 						if (strlen(tempOperand) <= 30) //max of 30 characters
 							locctrAddition = strlen(tempOperand); //add enough space to store this string (one spot for each character)
 						else
-							errors = strCat(errors, "x430x"); //max of 30 chars
+							errors = strCatFreeFirst(&errors, "x430x"); //max of 30 chars
 
 						//free(tempOperand); //TODO... this should work
 					}
@@ -683,18 +680,18 @@ int* processFullInstruction(
 								if (isNumber16(tempOperand) == 1)
 									locctrAddition = (strlen(tempOperand) / 2); //add enough space to store this hex number (one spot for each byte)
 								else
-									errors = strCat(errors, "x410x"); //must be a hex number 
+									errors = strCatFreeFirst(&errors, "x410x"); //must be a hex number 
 							}
 							else
-								errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
+								errors = strCatFreeFirst(&errors, "x440x");  //must be a max of 16 bytes 
 						}
 						else
-							errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
+							errors = strCatFreeFirst(&errors, "x450x"); //number must be byte so must have even number of digits 
 
 						//free(tempOperand); //TODO... this should work
 					}
 					else
-						errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
+						errors = strCatFreeFirst(&errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
 				}
 				else if (strcmp(operationName, "word") == 0)
 				{
@@ -703,10 +700,10 @@ int* processFullInstruction(
 						if ((strtol(operand, NULL, 10)) <= MAX_SIZE) //we will be able to store this in a word
 							locctrAddition = 3;
 						else
-							errors = strCat(errors, "x360x"); //we cant store this operand in a word (3 bytes)
+							errors = strCatFreeFirst(&errors, "x360x"); //we cant store this operand in a word (3 bytes)
 					}
 					else
-						errors = strCat(errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
 
 				}
 				else if (strcmp(operationName, "resb") == 0) //Reserves space for n bytes
@@ -717,10 +714,10 @@ int* processFullInstruction(
 						if (newAddition <= MAX_LOCCTR_SIZE)
 							locctrAddition = newAddition;
 						else
-							errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+							errors = strCatFreeFirst(&errors, "x350x"); //this addition would overflow the LOCCTR
 					}
 					else
-						errors = strCat(errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
 				}
 				else if (strcmp(operationName, "resw") == 0) //Reserves space for n words (3n bytes)
 				{
@@ -730,10 +727,10 @@ int* processFullInstruction(
 						if (newAddition <= MAX_LOCCTR_SIZE)
 							locctrAddition = newAddition;
 						else
-							errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+							errors = strCatFreeFirst(&errors, "x350x"); //this addition would overflow the LOCCTR
 					}
 					else
-						errors = strCat(errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
 				}
 			}
 
@@ -744,7 +741,7 @@ int* processFullInstruction(
 		{
 			//---------------INVALID OPERATION---------------
 			
-			errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
+			errors = strCatFreeFirst(&errors, "x210x"); //invalid mneumonic or directive 
 
 			//the operand field must equal something so we can print it
 			operand = returnEmptyString();
@@ -915,6 +912,7 @@ char* reverse(char* str)
 			indexF2B++;
 			indexB2F--;
 		}
+		strCopy[strlen(str)] = '\0';
 
 		return strCopy;
 	}
@@ -1063,6 +1061,7 @@ char* strCatFreeFirst(char** fS, char* lastString)
 		}
 		index++;
 	}
+
 	newString[newLength] = '\0'; //at last index insert null terminator
 
 	free(firstString);
