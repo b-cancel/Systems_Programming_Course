@@ -109,6 +109,7 @@ char* itoa16(int num); //TODO... implement
 char* returnEmptyString();
 void stringToLower(char** l);
 char* strCat(char* startValue, char* addition);
+char* strCatFreeFirst(char** fS, char* lastString);
 
 //---Error Checking Prototypes
 //for line
@@ -288,7 +289,7 @@ void pass1(char* filename)
 				{
 					removeSpacesBack(&line); //remove new line character
 
-					printf("processing '%s'\n", line);
+					printf("----------processing '%s'\n", line);
 
 					char* errors = returnEmptyString();
 
@@ -886,14 +887,15 @@ char* subString(char* src, int srcStartIndex, int subStringLength) {
 
 	char* dest = malloc((subStringLength + 1) * sizeof(char)); //+1 for null terminator
 
-	while (subStringLength > 0 && srcStartIndex < strlen(src)) {
-		subStringLength--;
+	int counter = subStringLength;
+	while (counter > 0 && srcStartIndex < strlen(src)) {
+		counter--;
 		dest[destI] = src[srcI];
 		destI++;
 		srcI++;
 	}
 
-	dest[(destI + 1)] = '\0';
+	dest[subStringLength] = '\0';
 
 	return dest;
 }
@@ -1034,6 +1036,36 @@ char* strCat(char* firstString, char* lastString)
 		index++;
 	}
 	newString[newLength] = '\0'; //at last index insert null terminator
+
+	return newString;
+}
+
+char* strCatFreeFirst(char** fS, char* lastString)
+{
+	char* firstString = *fS;
+
+	int newLength = (strlen(firstString) + strlen(lastString)); //EX: 4 + 3 = 7 chars
+	char* newString = malloc((newLength + 1) * sizeof(char)); //EX: allocate 7 slots (+ 1 for null terminator)
+
+	int index = 0;
+	int firstStringIndex = 0;
+	int lastStringIndex = 0;
+	while (index < newLength) { //EX: 7 chars indices 0 -> 6 [7]
+		if (index < strlen(firstString)) //EX: 4 chars indices 0 -> 3 [4]
+		{
+			newString[index] = firstString[firstStringIndex];
+			firstStringIndex++;
+		}
+		else
+		{
+			newString[index] = lastString[lastStringIndex];
+			lastStringIndex++;
+		}
+		index++;
+	}
+	newString[newLength] = '\0'; //at last index insert null terminator
+
+	free(firstString);
 
 	return newString;
 }
