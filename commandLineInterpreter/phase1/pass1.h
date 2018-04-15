@@ -54,6 +54,7 @@ I am Assuming:
 //2. to the intermediate file add (pointers to Opcode Table, and pointer to Symbol Table)
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
 //4. code "itoa16" to actually convert an integer into HEX representation
+//5. repair some small memory leaks (so we can assemble more than 1 program before the executable crashes and cleans itself out)
 
 #pragma region Library Includes
 
@@ -330,6 +331,7 @@ void pass1(char* filename)
 
 								//set new vars after running function
 								LOCCTR = newVars[0]; locctrAddition = newVars[1]; startFound = newVars[2]; endFound = newVars[3];
+								free(newVars); //TODO... free this memory
 
 								//--------------------PRINT Full Instruction
 
@@ -462,15 +464,15 @@ void pass1(char* filename)
 		{
 			fputs("---Symbol Table (string -> int)\n", ourIntermediateFile);
 			for (int i = 0; i < emptyIndex; i++) {
-				char* str = strCat(symbolTbl[i].key, " maps to ");
+				char* symStr = strCat(symbolTbl[i].key, " maps to ");
 				char* val = itoa10(symbolTbl[i].value);
 
 				//I literally have zip idea why this is required here when it is not required when i use the same exact itoa10 function with LOCCTR (and i dont require it)
 				val[strlen(val)-1] = ' '; 
 
-				str = strCat(str, val);
-				str = strCat(str, "\n");
-				fputs(str, ourIntermediateFile);
+				symStr = strCat(symStr, val);
+				symStr = strCat(symStr, "\n");
+				fputs(symStr, ourIntermediateFile);
 			}
 			fputs("\n", ourIntermediateFile);
 		}
@@ -487,7 +489,7 @@ void pass1(char* filename)
 	//NOTE: we cant start pass 2 unless at the very least the intermediate file opened properly in pass 1
 }
 
-//-------------------------THE MEAT-------------------------
+//--------------------------------------------------THE MEAT--------------------------------------------------
 
 int* processFullInstruction(
 	char **_line, char **_label, char **_operation, char **_operand, char **_errors,
@@ -496,6 +498,7 @@ int* processFullInstruction(
 {
 	//Link up to our variables by reference
 	char *line = *_line; char *label = *_label; char *operationName = *_operation; char *operand = *_operand; char *errors = *_errors;
+	free(label); free(operationName); free(operand); free(errors); //free the memory from the previous run (dont free line)
 
 	//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
@@ -504,8 +507,11 @@ int* processFullInstruction(
 	if (isLabel(line) == 1) //we have a label
 	{
 		label = processFirst(&line);
-		if (isEmpty(label) == 1)
+		if (isEmpty(label) == 1) 
+		{
+			free(label);
 			label = returnEmptyString();
+		}
 		else //we have some sort of label
 		{
 			int validResult = isValidLabel(label);
@@ -562,7 +568,6 @@ int* processFullInstruction(
 
 				//---Extract Operand (ignore ,X)
 
-				//TODO... UNTESTED...
 				if (operand[lastCharIndex] == 'x' && operand[lastCharIndex - 1] == ',') //form 'operand,x'
 				{
 					rawOperand = subString(operand, 0, strlen(operand) - 2);
@@ -596,7 +601,6 @@ int* processFullInstruction(
 
 						//---Now see if this is the type of HEX number that we want
 
-						//TODO... UNTESTED...
 						if (strlen(operand) % 2 != 0)
 							errors = strCat(errors, "x310x"); //hex number must be in bytes so you must have an even digit count
 						else //we can easily handle this operand as a HEX number
@@ -615,6 +619,7 @@ int* processFullInstruction(
 			operand = returnEmptyString();
 		}
 
+		//free(operationName); TODO... this should work
 		*_operation = operationCode;
 	}
 	else //check if we have a directive
@@ -628,108 +633,115 @@ int* processFullInstruction(
 
 			//NOTE: all directives have operands
 			operand = processFirst(&line);
-			if (isEmpty(operand) == 1) {
-				errors = strCat(errors, "x400x"); //missing operand
+			if (isEmpty(operand) == 1) //missing operand
+			{
+				errors = strCat(errors, "x400x"); 
+				//free(operand); //TODO... this should work
 				operand = returnEmptyString();
 			}
-			//ELSE... we have the operand we require
-
-			if (strcmp(operationName, "start") == 0)
+			else //we have the operand we need
 			{
-				//NOTE: because we checked that 'a' START directive was found with a VALID operand
-				//and using that operand we set our LOCCTR like we should have
-				//IF we are here then we know we have an EXTRA START directive
-				//except the for the first start we find (which we run in here because we still need to process the validity of its label)
-				//we know for a fact that its operand is valid
-
-				if (startFound > 1)
-					errors = strCat(errors, "x200x"); //extra start directive 
-				startFound++;
-			}
-			else if (strcmp(operationName, "end") == 0)
-			{
-				endFound = 1; //stop us from processing any more of this file
-			}
-			else if (strcmp(operationName, "byte") == 0) //Stores either character strings (C'...') or hexadecimal values (X'...')
-			{
-				if (operand[0] == 'c')
+				if (strcmp(operationName, "start") == 0)
 				{
-					char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are C, ', and '
+					//NOTE: because we checked that 'a' START directive was found with a VALID operand
+					//and using that operand we set our LOCCTR like we should have
+					//IF we are here then we know we have an EXTRA START directive
+					//except the for the first start we find (which we run in here because we still need to process the validity of its label)
+					//we know for a fact that its operand is valid
 
-					if (strlen(tempOperand) <= 30) //max of 30 characters
-						locctrAddition = strlen(tempOperand); //add enough space to store this string (one spot for each character)
-					else
-						errors = strCat(errors, "x430x"); //max of 30 chars
+					if (startFound > 1)
+						errors = strCat(errors, "x200x"); //extra start directive 
+					startFound++;
 				}
-				else if (operand[0] == 'x')
+				else if (strcmp(operationName, "end") == 0)
 				{
-					char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are X, ', and '
-
-					if (strlen(tempOperand) % 2 == 0) //must be even number of digits
+					endFound = 1; //stop us from processing any more of this file
+				}
+				else if (strcmp(operationName, "byte") == 0) //Stores either character strings (C'...') or hexadecimal values (X'...')
+				{
+					if (operand[0] == 'c')
 					{
-						//max of 32 hex digits... or 4 bytes... or 8 hex digits
-						if (strlen(tempOperand) <= 8)
+						char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are C, ', and '
+
+						if (strlen(tempOperand) <= 30) //max of 30 characters
+							locctrAddition = strlen(tempOperand); //add enough space to store this string (one spot for each character)
+						else
+							errors = strCat(errors, "x430x"); //max of 30 chars
+
+						//free(tempOperand); //TODO... this should work
+					}
+					else if (operand[0] == 'x')
+					{
+						char *tempOperand = subString(operand, 2, strlen(operand) - 3); // the three values are X, ', and '
+
+						if (strlen(tempOperand) % 2 == 0) //must be even number of digits
 						{
-							if (isNumber16(tempOperand) == 1)
-								locctrAddition = (strlen(tempOperand) / 2); //add enough space to store this hex number (one spot for each byte)
+							//max of 32 hex digits... or 4 bytes... or 8 hex digits
+							if (strlen(tempOperand) <= 8)
+							{
+								if (isNumber16(tempOperand) == 1)
+									locctrAddition = (strlen(tempOperand) / 2); //add enough space to store this hex number (one spot for each byte)
+								else
+									errors = strCat(errors, "x410x"); //must be a hex number 
+							}
 							else
-								errors = strCat(errors, "x410x"); //must be a hex number 
+								errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
 						}
 						else
-							errors = strCat(errors, "x440x");  //must be a max of 16 bytes 
+							errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
+
+						//free(tempOperand); //TODO... this should work
 					}
 					else
-						errors = strCat(errors, "x450x"); //number must be byte so must have even number of digits 
+						errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
 				}
-				else
-					errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
-			}
-			else if (strcmp(operationName, "word") == 0)
-			{
-				if (isNumber10(operand) == 1)
+				else if (strcmp(operationName, "word") == 0)
 				{
-					if ((strtol(operand, NULL, 10)) <= MAX_SIZE) //we will be able to store this in a word
-						locctrAddition = 3;
+					if (isNumber10(operand) == 1)
+					{
+						if ((strtol(operand, NULL, 10)) <= MAX_SIZE) //we will be able to store this in a word
+							locctrAddition = 3;
+						else
+							errors = strCat(errors, "x360x"); //we cant store this operand in a word (3 bytes)
+					}
 					else
-						errors = strCat(errors, "x360x"); //we cant store this operand in a word (3 bytes)
-				}
-				else
-					errors = strCat(errors, "x340x"); //you need a dec number passed
+						errors = strCat(errors, "x340x"); //you need a dec number passed
 
-			}
-			else if (strcmp(operationName, "resb") == 0) //Reserves space for n bytes
-			{
-				if (isNumber10(operand) == 1) //is number
-				{
-					int newAddition = (strtol(operand, NULL, 10));
-					if (newAddition <= MAX_LOCCTR_SIZE)
-						locctrAddition = newAddition;
-					else
-						errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
 				}
-				else
-					errors = strCat(errors, "x340x"); //you need a dec number passed
-			}
-			else if (strcmp(operationName, "resw") == 0) //Reserves space for n words (3n bytes)
-			{
-				if (isNumber10(operand) == 1) //is number
+				else if (strcmp(operationName, "resb") == 0) //Reserves space for n bytes
 				{
-					int newAddition = (strtol(operand, NULL, 10) * 3);
-					if (newAddition <= MAX_LOCCTR_SIZE)
-						locctrAddition = newAddition;
+					if (isNumber10(operand) == 1) //is number
+					{
+						int newAddition = (strtol(operand, NULL, 10));
+						if (newAddition <= MAX_LOCCTR_SIZE)
+							locctrAddition = newAddition;
+						else
+							errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+					}
 					else
-						errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+						errors = strCat(errors, "x340x"); //you need a dec number passed
 				}
-				else
-					errors = strCat(errors, "x340x"); //you need a dec number passed
+				else if (strcmp(operationName, "resw") == 0) //Reserves space for n words (3n bytes)
+				{
+					if (isNumber10(operand) == 1) //is number
+					{
+						int newAddition = (strtol(operand, NULL, 10) * 3);
+						if (newAddition <= MAX_LOCCTR_SIZE)
+							locctrAddition = newAddition;
+						else
+							errors = strCat(errors, "x350x"); //this addition would overflow the LOCCTR
+					}
+					else
+						errors = strCat(errors, "x340x"); //you need a dec number passed
+				}
 			}
 
 			*_operation = operationName;
+			//free(operationCode); TODO... this should work
 		}
 		else
 		{
 			//---------------INVALID OPERATION---------------
-
 			
 			errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
@@ -737,6 +749,7 @@ int* processFullInstruction(
 			operand = returnEmptyString();
 
 			*_operation = operationName;
+			//free(operationCode); TODO... this should work
 		}
 	}
 
