@@ -53,9 +53,7 @@ I am Assuming:
 //1. to the symbol table add (scope info, type[of what?], length[of what?])
 //2. to the intermediate file add (pointers to Opcode Table, and pointer to Symbol Table)
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
-//4. remove arbitrary limitations
-//5. code "itoa16" to actually convert an integer into HEX representation
-//6. repair "subString" function (they seem like they are working proplery but the dont because code stringCopy by using substring will give you a bad result)
+//4. code "itoa16" to actually convert an integer into HEX representation
 
 #pragma region Library Includes
 
@@ -82,14 +80,10 @@ I am Assuming:
 #define MAX_OPCODES 25
 #define MAX_PROGRAM_SIZE  32767
 #define MAX_SYMBOL_SIZE 7 //6 spots and null terminator
-#define MAX_OPCODE_SIZE 3 //2 spots and null terminator
 //implicit limitations
-#define MAX_OPERATION_SIZE 5 //4 spots and null terminator
 #define MAX_DIRECTIVE_SIZE 6 //5 spots and null terminator
 #define MAX_LOCCTR_SIZE 65535 //(FF,FF) base 16
 #define MAX_SIZE  16777215 //(FF,FF,FF) base 16
-//arbitrary limitations
-#define MAX_CHARS_PER_INSTRUCTION_SECTION 100
 
 #pragma endregion
 
@@ -194,7 +188,7 @@ void pass1(char* filename)
 		FILE *ourSourceFile = fopen(filename, "r");
 		if (ourSourceFile != NULL)
 		{
-			//resetSYMTBL();
+			resetSYMTBL();
 
 			//create the variables that will be used to read in our file
 			char *line = NULL; //NOTE: this does not need a size because getline handle all of that
@@ -423,6 +417,8 @@ void pass1(char* filename)
 
 				//--------------------------------------------------AFTER END -or- EOF--------------------------------------------------
 
+				printf("after end\n");
+
 				//if we stoped reading the file because END was found
 				if (endFound == 0)
 				{
@@ -499,7 +495,7 @@ int* processFullInstruction(
 )
 {
 	//Link up to our variables by reference
-	char *line = *_line; char *label = *_label; char *operation = *_operation; char *operand = *_operand; char *errors = *_errors;
+	char *line = *_line; char *label = *_label; char *operationName = *_operation; char *operand = *_operand; char *errors = *_errors;
 
 	//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
@@ -535,22 +531,22 @@ int* processFullInstruction(
 	else //the label field must equal something so we can print it
 		label = returnEmptyString(); //NOTE: this means we have no label but we DO have an operation
 
-	operation = processFirst(&line);
+	operationName = processFirst(&line);
 
 	//NOTE: by now we processed the label IF there was one -AND- added the nessesarily ERRORS
 
 	//-------------------------OPERATION FIELD-------------------------
 
-	char* operationCode = getOpCode(operation);
+	char* operationCode = getOpCode(operationName);
 
-	if (strcmp(indexToOpName(operationCode), "-1") == 0) //we have this mnemonic
+	if (strcmp(operationCode, "-1") != 0) //we have this mnemonic
 	{
 		//---------------MNEMONIC FOUND---------------
 
 		//NOTE: all mnemonic add to the location counter BUT... we only add to it if everything is valid...
 
 		//for everything except rsub read in an operand
-		if (strcmp(operation, "rsub") != 0)
+		if (strcmp(operationName, "rsub") != 0)
 		{
 			operand = processFirst(&line);
 
@@ -618,15 +614,17 @@ int* processFullInstruction(
 			locctrAddition = 3;
 			operand = returnEmptyString();
 		}
+
+		*_operation = operationCode;
 	}
 	else //check if we have a directive
 	{
-		if (isDirective(operation) == 1)
+		if (isDirective(operationName) == 1)
 		{
 			//---------------DIRECTIVE FOUND---------------
 
 			operationCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-			operationCode = operation;
+			operationCode = operationName;
 
 			//NOTE: all directives have operands
 			operand = processFirst(&line);
@@ -636,7 +634,7 @@ int* processFullInstruction(
 			}
 			//ELSE... we have the operand we require
 
-			if (strcmp(operation, "start") == 0)
+			if (strcmp(operationName, "start") == 0)
 			{
 				//NOTE: because we checked that 'a' START directive was found with a VALID operand
 				//and using that operand we set our LOCCTR like we should have
@@ -648,11 +646,11 @@ int* processFullInstruction(
 					errors = strCat(errors, "x200x"); //extra start directive 
 				startFound++;
 			}
-			else if (strcmp(operation, "end") == 0)
+			else if (strcmp(operationName, "end") == 0)
 			{
 				endFound = 1; //stop us from processing any more of this file
 			}
-			else if (strcmp(operation, "byte") == 0) //Stores either character strings (C'...') or hexadecimal values (X'...')
+			else if (strcmp(operationName, "byte") == 0) //Stores either character strings (C'...') or hexadecimal values (X'...')
 			{
 				if (operand[0] == 'c')
 				{
@@ -686,7 +684,7 @@ int* processFullInstruction(
 				else
 					errors = strCat(errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
 			}
-			else if (strcmp(operation, "word") == 0)
+			else if (strcmp(operationName, "word") == 0)
 			{
 				if (isNumber10(operand) == 1)
 				{
@@ -699,7 +697,7 @@ int* processFullInstruction(
 					errors = strCat(errors, "x340x"); //you need a dec number passed
 
 			}
-			else if (strcmp(operation, "resb") == 0) //Reserves space for n bytes
+			else if (strcmp(operationName, "resb") == 0) //Reserves space for n bytes
 			{
 				if (isNumber10(operand) == 1) //is number
 				{
@@ -712,7 +710,7 @@ int* processFullInstruction(
 				else
 					errors = strCat(errors, "x340x"); //you need a dec number passed
 			}
-			else if (strcmp(operation, "resw") == 0) //Reserves space for n words (3n bytes)
+			else if (strcmp(operationName, "resw") == 0) //Reserves space for n words (3n bytes)
 			{
 				if (isNumber10(operand) == 1) //is number
 				{
@@ -725,17 +723,20 @@ int* processFullInstruction(
 				else
 					errors = strCat(errors, "x340x"); //you need a dec number passed
 			}
+
+			*_operation = operationName;
 		}
 		else
 		{
 			//---------------INVALID OPERATION---------------
 
-			operationCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-			operationCode = operation;
+			
 			errors = strCat(errors, "x210x"); //invalid mneumonic or directive 
 
-											  //the operand field must equal something so we can print it
+			//the operand field must equal something so we can print it
 			operand = returnEmptyString();
+
+			*_operation = operationName;
 		}
 	}
 
@@ -744,7 +745,7 @@ int* processFullInstruction(
 	//edit the original variable that was passed by reference...
 	*_line = line;
 	*_label = label;
-	*_operation = operationCode;
+	//operation value set by persepctive sections
 	*_operand = operand;
 	*_errors = errors;
 
@@ -768,32 +769,17 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 
 	if (line[0] != '\0') //make sure we have a line left
 	{
-		//printf("before line '%s'\n", line);
-
 		removeSpacesFront(&line);
-
-		//printf("after line '%s'\n", line);
 
 		//make sure we have string left to check after getting rid of all spaces
 		if (isEmpty(line) == 1)
-			return line;
+			return returnEmptyString();
 		else
 		{
-			char* first = malloc(MAX_CHARS_PER_INSTRUCTION_SECTION * sizeof(char)); //create value (so we can pass it by value)
-
-			int lineID = 0;
-
-			//used to create both of our substring
-			int firstCharIndex = lineID;
-
-			//var init
-			int firstID = 0;
-
 			//add anything that isnt a space to our word
-			while (isspace(line[lineID]) == 0 && line[lineID] != '\0' && firstID < MAX_CHARS_PER_INSTRUCTION_SECTION) {
-				lineID++;
-				firstID++;
-			}
+			int firstLength = 0;
+			while (isspace(line[firstLength]) == 0 && line[firstLength] != '\0')
+				firstLength++;
 
 			//NOTE: inclusive index for FIRST start is firstCharIndex... exclusive index for FIRST end is lineID...
 			//size of FIRST is  (lineID - firstCharIndex)
@@ -802,13 +788,13 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 			//BEWARE: lineID IS NOT ALWAYS A SPACE
 
 			//calculate first substring
-			int sizeOfFirst = (lineID - firstCharIndex);
-			first = subString(line, firstCharIndex, sizeOfFirst);
+			char *first = subString(line, 0, firstLength); //memory allocated by substring
 
 			//calculate line substring
-			int sizeOfLine = (strlen(line) - lineID);
-			line = subString(line, lineID, sizeOfLine);
-			*l = line;
+			int sizeOfLine = (strlen(line) - firstLength);
+			char *lineWithoutFirst = subString(line, firstLength, sizeOfLine);
+			//TODO... free line here... (this isnt working for reasons)
+			*l = lineWithoutFirst;
 
 			return first;
 		}
@@ -819,8 +805,8 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 
 char* processRest(char** l) { //remove spaces in front of the line that its passed... return a new string that is exactly the same as the string passed without spaces
 	char* line = *l;
-	removeSpacesFront(&line);
-	return stringCopy(line);
+	removeSpacesFront(&line); //remove the front of the line by reference...
+	return stringCopy(line); //return a copy of the line without spaces in front...
 }
 
 int removeSpacesFront(char** l) { //returns how many spaces where removed
@@ -835,13 +821,15 @@ int removeSpacesFront(char** l) { //returns how many spaces where removed
 		while (isspace(line[lineID]) != 0 && line[lineID] != '\0')
 			lineID++;
 
+		char* resultLine;
+
 		//make sure we have string left to check after getting rid of all spaces
 		if (line[lineID] == '\0')
-			line = returnEmptyString(); //nothing useful is left in the line
+			resultLine = returnEmptyString(); //nothing useful is left in the line
 		else{
-			line = subString(line, lineID, (strlen(line) - lineID));
-
-			*l = line;
+			resultLine = subString(line, lineID, (strlen(line) - lineID));
+			//TODO... free line here... (this isnt working for reasons)
+			*l = resultLine;
 		}
 		return lineID;
 	}
@@ -967,14 +955,21 @@ char* itoa10(int num)
 
 		base10Str[index] = '\0'; // Append string terminator  
 
-		base10Str = reverse(base10Str); // Reverse the string
+		char *base10StrRev = reverse(base10Str); // Reverse the string
+		if(strlen(base10Str) > 0)
+			free(base10Str);
 
 		//---ADD negative sign (if needed)
 		
+		char *result;
 		if (isNeg == 1)
-			base10Str = strCat("-", base10Str);
+			result = strCat("-", base10StrRev);
+		else
+			result = stringCopy(base10StrRev);
+		if(strlen(base10StrRev) > 0)
+			free(base10StrRev);
 
-		return base10Str;
+		return result;
 	}
 }
 
@@ -1103,7 +1098,7 @@ int isNumber16(char* num) {
 
 int resetSYMTBL() {
 	for (int i = 0; i < emptyIndex; i++) {
-		free(symbolTbl[i].key);
+		symbolTbl[i].key = ""; // we dont need to free memory since we always keep the same 500 slots for any other assembly anyways
 		symbolTbl[i].value = -1;
 	}
 	emptyIndex = 0;
@@ -1189,7 +1184,9 @@ int containsOpCode(char* operand) {
 
 char* getOpCode(char* operand) {
 	for (int index = 0; index < MAX_OPCODES; index++) 
-		if (strcmp(indexToOpName(index), operand) == 0)	return indexToOpCode(index);
+		if (strcmp(indexToOpName(index), operand) == 0)	
+			return indexToOpCode(index);
+
 	return "-1";
 }
 
