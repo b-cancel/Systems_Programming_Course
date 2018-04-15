@@ -291,8 +291,6 @@ void pass1(char* filename)
 
 					printf("----------processing '%s'\n", line);
 
-					char* errors = returnEmptyString();
-
 					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (WITH case sensitivity) for writing it in its entirety into the intermediate file
 					origLine = stringCopy(line);
 					stringToLower(&line); //remove case sensitivity
@@ -318,6 +316,7 @@ void pass1(char* filename)
 								//--------------------PROCESS Full Instruction
 
 								int *newVars = malloc(4 * sizeof(int));
+								char* errors = returnEmptyString();
 
 								//grab new vars after running function
 								newVars = processFullInstruction(
@@ -345,7 +344,7 @@ void pass1(char* filename)
 									errors = strCat(errors, "x901x");
 
 								comment = processRest(&line);
-								errors = strCat(errors, "\0"); //add a null terminator to errors
+								errors = strCat(errors, "\0");								
 
 								if (printIntermediateFile == 1)
 								{
@@ -374,6 +373,7 @@ void pass1(char* filename)
 							{
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
+								char* errors = returnEmptyString();
 								errors = strCat(errors, "x140x");
 
 								programLength = (LOCCTR - startingAddress);
@@ -499,7 +499,7 @@ int* processFullInstruction(
 {
 	//Link up to our variables by reference
 	char *line = *_line; char *label = *_label; char *operationName = *_operation; char *operand = *_operand; char *errors = *_errors;
-	free(label); free(operationName); free(operand); free(errors); //free the memory from the previous run (dont free line)
+	free(label); free(operationName); free(operand); //free the memory from the previous run (dont free line) | (errors is already empty)
 
 	//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
