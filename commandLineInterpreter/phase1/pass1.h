@@ -55,7 +55,7 @@ I am Assuming:
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
 //4. remove arbitrary limitations
 //5. code "itoa16" to actually convert an integer into HEX representation
-//6. repair "subString" and "subStringRef" functions (they seem like they are working proplery but the dont because code stringCopy by using substring will give you a bad result)
+//6. repair "subString" function (they seem like they are working proplery but the dont because code stringCopy by using substring will give you a bad result)
 
 #pragma region Library Includes
 
@@ -98,7 +98,6 @@ I am Assuming:
 //---GENERAL String Processing Prototypes (require repairs)
 char* stringCopy(char* str); //NOTE: this could use substring but substring is giving me problems
 char* subString(char* src, int srcIndex, int strLength);
-void subStringRef(char** source, int srcIndex, int strLength);
 
 //---SPECIFIC String Processing Prototypes (require repairs)
 char* processFirst(char** l); //CHECK after repairing substrings
@@ -800,24 +799,6 @@ char* subString(char* src, int srcIndex, int strLength) {
 	return dest;
 }
 
-void subStringRef(char** source, int srcIndex, int strLength) { //pass src by reference... it will be returned by reference
-
-	char* src = *source;
-
-	int srcI = srcIndex;
-	int destI = 0;
-
-	while (strLength > 0) {
-		strLength--;
-		src[destI] = src[srcI];
-		destI++;
-		srcI++;
-	}
-
-	int nullTermIndex = min(strlen(src) - 2, destI);
-	src[nullTermIndex] = '\0';
-}
-
 //-------------------------SPECIFIC String Processing Functions-------------------------
 
 char* processFirst(char** l) //actually return our first word found, by reference "return" the line
@@ -865,7 +846,8 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 
 			//calculate line substring
 			int sizeOfLine = (strlen(line) - lineID);
-			subStringRef(&line, lineID, sizeOfLine);
+			line = subString(line, lineID, sizeOfLine);
+			*l = line;
 
 			return first;
 		}
@@ -895,8 +877,10 @@ int removeSpacesFront(char** l) { //returns how many spaces where removed
 		//make sure we have string left to check after getting rid of all spaces
 		if (line[lineID] == '\0')
 			line = returnEmptyString(); //nothing useful is left in the line
-		else
-			subStringRef(&line, lineID, (strlen(line) - lineID));
+		else{
+			line = subString(line, lineID, (strlen(line) - lineID));
+			*l = line;
+		}
 		return lineID;
 	}
 	else {
