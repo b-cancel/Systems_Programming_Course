@@ -140,9 +140,10 @@ int getValueIndexSYMTBL(int value);
 void printSymbolTable();
 
 //---OpCode Table Prototypes
-void buildOpCodeTable();
 int containsOpCode(char* operand);
-int getOpCodeIndex(char* operand);
+char* getOpCode(char* operand);
+char* indexToOpName(int index);
+char* indexToOpCode(int index);
 void printOpCodeTable();
 
 #pragma endregion
@@ -163,14 +164,6 @@ struct charToInt {
 };
 keyToValue symbolTbl[MAX_SYMBOLS]; //keys must be a continuous stream of characters
 int emptyIndex;
-
-//---OpCode Table Global Vars
-typedef struct charToChar charToChar;
-struct charToChar {
-	char* key; //size 5 as set by constant
-	char* value; //size 2 as set by constant
-};
-charToChar opCodeTbl[MAX_OPCODES];
 
 void pass1(char* filename)
 {
@@ -201,8 +194,7 @@ void pass1(char* filename)
 		FILE *ourSourceFile = fopen(filename, "r");
 		if (ourSourceFile != NULL)
 		{
-			resetSYMTBL();
-			buildOpCodeTable();
+			//resetSYMTBL();
 
 			//create the variables that will be used to read in our file
 			char *line = NULL; //NOTE: this does not need a size because getline handle all of that
@@ -213,6 +205,8 @@ void pass1(char* filename)
 			char *operation;
 			char *operand;
 			char *comment;
+
+			printf("before start\n");
 
 			//--------------------------------------------------BEFORE START--------------------------------------------------
 
@@ -282,6 +276,7 @@ void pass1(char* filename)
 				//ELSE... we have not found label in our line... we cannot find START
 			}
 
+			free(programFirstLabel);
 			programFirstLabel = stringCopy(label);
 
 			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
@@ -289,12 +284,16 @@ void pass1(char* filename)
 
 				//--------------------------------------------------BETWEEN START and END--------------------------------------------------
 
+				printf("between start and end\n");
+
 				int endFound = 0;
 
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
 				do
 				{
 					removeSpacesBack(&line); //remove new line character
+
+					printf("processing '%s'\n", line);
 
 					char* errors = returnEmptyString();
 
@@ -330,8 +329,10 @@ void pass1(char* filename)
 									LOCCTR, locctrAddition, startFound, endFound
 								);
 
-								if (strcmp(operation, "end") == 0)
+								if (strcmp(operation, "end") == 0) {
+									free(programLastLabel);
 									programLastLabel = operand;
+								}
 
 								//set new vars after running function
 								LOCCTR = newVars[0]; locctrAddition = newVars[1]; startFound = newVars[2]; endFound = newVars[3];
@@ -540,16 +541,13 @@ int* processFullInstruction(
 
 	//-------------------------OPERATION FIELD-------------------------
 
-	int result = getOpCodeIndex(operation);
-	char* operationCode = malloc(MAX_OPCODE_SIZE * sizeof(char));
+	char* operationCode = getOpCode(operation);
 
-	if (result != -1) //we have this mnemonic
+	if (strcmp(indexToOpName(operationCode), "-1") == 0) //we have this mnemonic
 	{
 		//---------------MNEMONIC FOUND---------------
 
 		//NOTE: all mnemonic add to the location counter BUT... we only add to it if everything is valid...
-
-		operationCode = opCodeTbl[result].value;
 
 		//for everything except rsub read in an operand
 		if (strcmp(operation, "rsub") != 0)
@@ -592,7 +590,7 @@ int* processFullInstruction(
 						int secondHexDigitAtoF = (isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0) ? 1 : 0; //if we have a HEX number that starts with A -> F
 						if (secondHexDigitAtoF && operand[0] == '0') //and we have a leading 0
 						{
-							//***we have a HEX number that uses a leading 0 to distinguish itself from a Label
+							//we have a HEX number that uses a leading 0 to distinguish itself from a Label
 
 							//shift everything to the left
 
@@ -745,13 +743,14 @@ int* processFullInstruction(
 	//but it does what the code without this should do...
 	//edit the original variable that was passed by reference...
 	*_line = line;
+	*_label = label;
 	*_operation = operationCode;
 	*_operand = operand;
 	*_errors = errors;
 
 	LOCCTR += locctrAddition; //now we add how must space this particular command took and move onto the next one
 
-							  //create array to pass integers "by reference"
+	//create array to pass integers "by reference"
 	int *newVars = malloc(4 * sizeof(int));
 	newVars[0] = LOCCTR; newVars[1] = locctrAddition; newVars[2] = startFound; newVars[3] = endFound;
 	return newVars;
@@ -841,6 +840,7 @@ int removeSpacesFront(char** l) { //returns how many spaces where removed
 			line = returnEmptyString(); //nothing useful is left in the line
 		else{
 			line = subString(line, lineID, (strlen(line) - lineID));
+
 			*l = line;
 		}
 		return lineID;
@@ -1113,9 +1113,9 @@ int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be
 
 	if (emptyIndex < MAX_SYMBOLS) {
 		int newValueInsert = emptyIndex; //location we insert the key and value into their respective arrays
-		if (getKeyIndexSYMTBL(key) == -1) { //they key is not in our arrays
-											//new value inserted
-			symbolTbl[newValueInsert].key = malloc(MAX_SYMBOL_SIZE * sizeof(char)); //allocate memory for char
+		if (getKeyIndexSYMTBL(key) == -1) //they key is not in our arrays
+		{ 
+			//NOTE: allocating memory for KEY is not nessesary
 			symbolTbl[newValueInsert].key = key; //save char
 			symbolTbl[newValueInsert].value = value;
 			emptyIndex++;
@@ -1180,99 +1180,89 @@ void printSymbolTable() {
 
 //-------------------------Op Code Table Functions (Operation | OpCode)-------------------------
 
-void buildOpCodeTable() {
-
-	int index = 0;
-	for (int index = 0; index < MAX_OPCODES; index++) {
-
-		//allocate memory for both values
-		opCodeTbl[index].key = malloc(MAX_OPERATION_SIZE * sizeof(char)); //allocate memory for char
-		opCodeTbl[index].value = malloc(MAX_OPCODE_SIZE * sizeof(char)); //1 space for the null terminator
-
-																		 //allocate memory for temporary values
-		char* theKey = malloc(MAX_OPERATION_SIZE * sizeof(char));;
-		char* theValue = malloc(2 * sizeof(char));
-
-		switch (index)
-		{
-		case 0: //	ADD m 				18 		A <-(A)+(m..m + 2)
-			theKey = "add";	theValue = "18";	break;
-		case 1: //	AND m 				58 		A <-(A) & (m..m + 2)[bitwise]
-			theKey = "and";	theValue = "58";	break;
-		case 2: //	COMP m 				28 		cond code <-(A) : (m..m + 2)
-			theKey = "comp";	theValue = "28";	break;
-		case 3: //	DIV m 				24 		A <-(A) / (m..m + 2)
-			theKey = "div";	theValue = "24";	break;
-		case 4: //	J m 				3C 		PC <-m
-			theKey = "j";	theValue = "3C";	break;
-		case 5: //	JEQ m 				30 		PC <-m if cond code set to =
-			theKey = "jeq";	theValue = "30";	break;
-		case 6: //	JGT m 				34 		PC <-m if cond code set to >
-			theKey = "jgt";	theValue = "34";	break;
-		case 7: //	JLT m 				38 		PC <-m if cond code set to <
-			theKey = "jlt";	theValue = "38";	break;
-		case 8: //	JSUB m 				48 		L <-(PC); PC <-m
-			theKey = "jsub";	theValue = "48";	break;
-		case 9: //	LDA m 				00 		A <-(m..m + 2)
-			theKey = "lda";	theValue = "00";	break;
-		case 10: //	LDCH m 				50 		A[rightmost byte] <-(m)
-			theKey = "ldch";	theValue = "50";	break;
-		case 11: //	LDL m 				08 		L <-(m..m + 2)
-			theKey = "ldl";	theValue = "08";	break;
-		case 12: //	LDX m 				04 		X <-(m..m + 2)
-			theKey = "ldx";	theValue = "04";	break;
-		case 13: //	MUL m 				20 		A <-(A) * (m..m + 2)
-			theKey = "mul";	theValue = "20";	break;
-		case 14: //	OR m 				44 		A <-(A) | (m..m + 2)[bitwise]
-			theKey = "or";	theValue = "44";	break;
-		case 15: //	RD m 				D8 		A[rightmost byte] <-data from device specified by(m)
-			theKey = "rd";	theValue = "D8";	break;
-		case 16: //	RSUB 				4C 		PC <-(L)
-			theKey = "rsub";	theValue = "4C";	break;
-		case 17: //	STA m 				0C 		m..m + 2 <-(A)
-			theKey = "sta";	theValue = "0C";	break;
-		case 18: //	STCH m 				54 		m <-(A)[rightmost byte]
-			theKey = "stch";	theValue = "54";	break;
-		case 19: //	STL m 				14 		m..m + 2 <-(L)
-			theKey = "stl";	theValue = "14";	break;
-		case 20: //	STX m 				10 		m..m + 2 <-(X)
-			theKey = "stx";	theValue = "10";	break;
-		case 21: //	SUB m 				1C 		A <-(A)-(m..m + 2)
-			theKey = "sub";	theValue = "1C";	break;
-		case 22: //	TD m 				E0 		Test device specified by(m)
-			theKey = "td";	theValue = "E0";	break;
-		case 23: //	TIX m 				2C 		X <-(X)+1; compare X and (m..m + 2)
-			theKey = "tix";	theValue = "2C";	break;
-		case 24: //	WD m 				DC 		Device specified by(m) <-(A)[rightmost byte]
-			theKey = "wd";	theValue = "DC";	break;
-		default:
-			break;
-		}
-
-		//assign values to dictionary
-		opCodeTbl[index].key = theKey;
-		opCodeTbl[index].value = theValue;
-	}
-}
-
 int containsOpCode(char* operand) {
-	if (getOpCodeIndex(operand) != -1)
+	if (strcmp(getOpCode(operand), "-1") == 0)
 		return 1;
 	else
 		return 0;
 }
 
-int getOpCodeIndex(char* operand) {
-	for (int i = 0; i < MAX_OPCODES; i++)
-		if (strcmp(opCodeTbl[i].key, operand) == 0)
-			return i;
-	return -1;
+char* getOpCode(char* operand) {
+	for (int index = 0; index < MAX_OPCODES; index++) 
+		if (strcmp(indexToOpName(index), operand) == 0)	return indexToOpCode(index);
+	return "-1";
+}
+
+char* indexToOpName(int index) 
+{
+	switch (index)
+	{
+	case 0:		return "add";	break;
+	case 1:		return "and";	break;
+	case 2:		return "comp";	break;
+	case 3:		return "div";	break;
+	case 4:		return "j";		break;
+	case 5:		return "jeq";	break;
+	case 6:		return "jgt";	break;
+	case 7:		return "jlt";	break;
+	case 8:		return "jsub";	break;
+	case 9:		return "lda";	break;
+	case 10:	return "ldch";	break;
+	case 11:	return "ldl";	break;
+	case 12:	return "ldx";	break;
+	case 13:	return "mul";	break;
+	case 14:	return "or";	break;
+	case 15:	return "rd";	break;
+	case 16:	return "rsub";	break;
+	case 17:	return "sta";	break;
+	case 18:	return "stch";	break;
+	case 19:	return "stl";	break;
+	case 20:	return "stx";	break;
+	case 21:	return "sub";	break;
+	case 22:	return "td";	break;
+	case 23:	return "tix";	break;
+	case 24:	return "wd";	break;
+	default:	return "";		break;
+	}
+}
+
+char* indexToOpCode(int index) 
+{
+	switch (index)
+	{
+	case 0:		return "18";	break;
+	case 1:		return "58";	break;
+	case 2:		return "28";	break;
+	case 3:		return "24";	break;
+	case 4:		return "3C";	break;
+	case 5:		return "30";	break;
+	case 6:		return "34";	break;
+	case 7:		return "38";	break;
+	case 8:		return "48";	break;
+	case 9:		return "00";	break;
+	case 10:	return "50";	break;
+	case 11:	return "08";	break;
+	case 12:	return "04";	break;
+	case 13:	return "20";	break;
+	case 14:	return "44";	break;
+	case 15:	return "D8";	break;
+	case 16:	return "4C";	break;
+	case 17:	return "0C";	break;
+	case 18:	return "54";	break;
+	case 19:	return "14";	break;
+	case 20:	return "10";	break;
+	case 21:	return "1C";	break;
+	case 22:	return "E0";	break;
+	case 23:	return "2C";	break;
+	case 24:	return "DC";	break;
+	default:	return "";		break;
+	}
 }
 
 void printOpCodeTable() {
 	printf("---Op Code Table (string -> int)\n");
 	for (int i = 0; i < MAX_OPCODES; i++)
-		printf("'%s' maps to '%s'\n", opCodeTbl[i].key, opCodeTbl[i].value);
+		printf("'%s' maps to '%s'\n", indexToOpName(i), indexToOpCode(i));
 	printf("\n");
 }
 
