@@ -180,7 +180,7 @@ void pass1(char* filename)
 	int printIntermediateFile = 0; //1 to print, 0 to not print
 	int writeIntermediateFile = 1; //1 to write to file, 0 to not write to file
 
-	printf("Source File: '%s'\n", filename);
+	printf("\nSource File: '%s'\n", filename);
 	//place INTERMEDIATE in stream, make sure INTERMEDIATE file opens for writing properly
 	char* interFileName = strCat(subString(filename, 0, strlen(filename) - 4), "Intermediate.txt");
 	printf("Intermediate File: '%s'\n", interFileName);
@@ -363,7 +363,7 @@ void pass1(char* filename)
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCatFreeFirst(&errors, "x900x"); //program is too long
 								if (LOCCTR > MAX_LOCCTR_SIZE)
-									errors = strCatFreeFirst(&errors, "x901x");
+									errors = strCatFreeFirst(&errors, "x910x");
 
 								comment = processRest(&line);
 								errors = strCatFreeFirst(&errors, "\0");
@@ -392,7 +392,7 @@ void pass1(char* filename)
 								}
 
 								//free(line);
-								freeMem(&label);
+								//freeMem(&label); //NOTE: dont clear because the symbol table is using this memory
 								//free(operation); //TODO... this should work but it doesnt
 								//free(operand); //TODO... this should work but it doesnt
 								//free(comment); //TODO... this should work but it doesnt
@@ -411,7 +411,7 @@ void pass1(char* filename)
 								if (programLength > MAX_PROGRAM_SIZE)
 									errors = strCatFreeFirst(&errors, "x900x"); //program is too long
 								if (LOCCTR > MAX_LOCCTR_SIZE)
-									errors = strCatFreeFirst(&errors, "x901x");
+									errors = strCatFreeFirst(&errors, "x910x");
 
 								errors = strCatFreeFirst(&errors, "\0"); //add a null terminator to errors
 
@@ -457,8 +457,6 @@ void pass1(char* filename)
 
 				//--------------------------------------------------AFTER END -or- EOF--------------------------------------------------
 
-				printf("after end\n");
-
 				//if we stoped reading the file because END was found
 				if (endFound == 0)
 				{
@@ -502,17 +500,21 @@ void pass1(char* filename)
 		{
 			fputs("---Symbol Table (string -> int)\n", ourIntermediateFile);
 			for (int i = 0; i < emptyIndex; i++) {
+
 				char* symStr = strCat(symbolTbl[i].key, " maps to ");
 				char* val = itoa10(symbolTbl[i].value);
 
 				symStr = strCatFreeFirst(&symStr, val);
 				symStr = strCatFreeFirst(&symStr, "\n");
 				fputs(symStr, ourIntermediateFile);
+				
 			}
 			fputs("\n", ourIntermediateFile);
 		}
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
+
+		printf("PASS 1 COMPLETE\n\n");
 
 		pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
 		freeMem(&interFileName);
@@ -576,8 +578,6 @@ int* processFullInstruction(
 	//NOTE: by now we processed the label IF there was one -AND- added the nessesarily ERRORS
 
 	//-------------------------OPERATION FIELD-------------------------
-
-	
 
 	if (strcmp(getOpCode(operationName), "-1") != 0) //we have this mnemonic
 	{
@@ -1200,6 +1200,7 @@ int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be
 			//NOTE: allocating memory for KEY is not nessesary
 			symbolTbl[newValueInsert].key = key; //save char
 			symbolTbl[newValueInsert].value = value;
+
 			emptyIndex++;
 			return 1;
 		}
@@ -1211,7 +1212,6 @@ int addSYMTBL(char* key, int value) { //returns 1 if success, 0 if value must be
 }
 
 int setSYMTBL(char* key, int value) { //returns 1 if key and value pairing found and update, 0 otherwise
-
 
 	int oldValueOverwrite = getKeyIndexSYMTBL(key); //get the index of key...
 	if (oldValueOverwrite != -1) { //they key is not in our arrays

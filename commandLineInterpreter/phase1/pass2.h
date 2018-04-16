@@ -24,7 +24,7 @@ void pass2(char *sourceName, char * intermediateName, char **_firstLabel, char *
 
 	//buildOpCodeTable();
 
-	printf("I can also access pass1 functions... symbol table and opcode table... ready to build pass 2\n");
+	printf("READY FOR PASS 2\n");
 
 	/*
 	the listing file (that contains the result of assembly) we are creating should include
