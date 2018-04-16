@@ -54,7 +54,7 @@ I am Assuming:
 //2. to the intermediate file add (pointers to Opcode Table, and pointer to Symbol Table)
 //3. convert the symbol table to something actually efficient (Ideally we use a dynamic Hash Table)
 //4. code "itoa16" to actually convert an integer into HEX representation
-//5. repair some small memory leaks (so we can assemble more than 1 program before the executable crashes and cleans itself out)
+//5. repair some small memory leaks (most of the TODO items in this program)
 
 #pragma region Library Includes
 
@@ -267,7 +267,7 @@ void pass1(char* filename)
 								{
 									//free(label); //TODO... this should work but it doesnt
 								}
-								//free(operand); //TODO... this should work but it doesnt
+								freeMem(&operand); //TODO... this should work but it doesnt
 							}
 							else //we did not find the START directive
 							{
@@ -279,7 +279,7 @@ void pass1(char* filename)
 							operation = returnEmptyString();
 							//free(label); //TODO... this should work but it doesnt
 						}
-						//free(operation); //TODO... this should work but it doesnt
+						freeMem(&operation); //TODO... this should work but it doesnt
 					}
 					else //we did not find a label
 					{
@@ -322,7 +322,7 @@ void pass1(char* filename)
 							char *tempLine = stringCopy(line);
 							if (isLabel(tempLine) == 1) {
 								label = processFirst(&tempLine); //we are guaranteed to find atleast something
-								//free(label); //TODO... this should work but it doesnt
+								freeMem(&label); //TODO... this should work but it doesnt
 							}
 							else
 								label = returnEmptyString();
@@ -396,7 +396,7 @@ void pass1(char* filename)
 								//free(operation); //TODO... this should work but it doesnt
 								//free(operand); //TODO... this should work but it doesnt
 								//free(comment); //TODO... this should work but it doesnt
-								//free(errors);
+								freeMem(&errors);
 							}
 							else //we are missing an operation
 							{
