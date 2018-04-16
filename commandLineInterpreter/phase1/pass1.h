@@ -90,6 +90,8 @@ I am Assuming:
 
 #pragma region Helper Function Prototypes
 
+void freeMem(char **line);
+
 //---SPECIFIC String Processing Prototypes (require repairs)
 char* processFirst(char** l); //CHECK after repairing substrings
 char* processRest(char** l);
@@ -202,8 +204,6 @@ void pass1(char* filename)
 			char *operand;
 			char *comment;
 
-			printf("before start\n");
-
 			//--------------------------------------------------BEFORE START--------------------------------------------------
 
 			int startingAddress = 0;
@@ -216,7 +216,7 @@ void pass1(char* filename)
 				char *lineCopy = stringCopy(line); //make a copy of the line (because the actual line should be processed below)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
 
-										  //we did not find a white space(potential label)
+				//we did not find a white space(potential label)
 				if (isLabel(lineCopy) == 1)
 				{
 					label = processFirst(&lineCopy);
@@ -248,6 +248,8 @@ void pass1(char* filename)
 												printf("%s\n\n\n\n\n\nx040x\n\n", line);
 											if (writeIntermediateFile == 1)
 												fputs(strCat(line, "\n\n\n\n\n\nx040x\n\n"), ourIntermediateFile);
+
+											//free(label); //TODO... this should work but it doesnt
 										}
 									}
 									else //ELSE... we dont have a hex number
@@ -257,22 +259,40 @@ void pass1(char* filename)
 											printf("%s\n\n\n\n\n\nx030x\n\n", line);
 										if (writeIntermediateFile == 1)
 											fputs(strCat(line, "\n\n\n\n\n\nx030x\n\n"), ourIntermediateFile);
+
+										//free(label); //TODO... this should work but it doesnt
 									}
 								}
-								//ELSE... we have a missing operand we cannot continue
+								else //we have a missing operand we cannot continue
+								{
+									//free(label); //TODO... this should work but it doesnt
+								}
+								//free(operand); //TODO... this should work but it doesnt
 							}
-							//ELSE... we did not find the START directive
+							else //we did not find the START directive
+							{
+								//free(label); //TODO... this should work but it doesnt
+							}
 						}
 						else //we did not find an operation
+						{
 							operation = returnEmptyString();
+							//free(label); //TODO... this should work but it doesnt
+						}
+						//free(operation); //TODO... this should work but it doesnt
 					}
 					else //we did not find a label
+					{
+						//free(label); //TODO... this should work but it doesnt
 						label = returnEmptyString();
+					}
 				}
 				//ELSE... we have not found label in our line... we cannot find START
+
+				//free(line); //TODO... this should work but it doesnt
 			}
 
-			free(programFirstLabel);
+			freeMem(&programFirstLabel);
 			programFirstLabel = stringCopy(label);
 
 			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
@@ -280,16 +300,12 @@ void pass1(char* filename)
 
 				//--------------------------------------------------BETWEEN START and END--------------------------------------------------
 
-				printf("between start and end\n");
-
 				int endFound = 0;
 
 				//NOTE: we use a do while because the line that is currently in the "buffer" is the first line (the one with the START directive)
 				do
 				{
 					removeSpacesBack(&line); //remove new line character
-
-					//printf("----------processing '%s'\n", line);
 
 					char *origLine = malloc(strlen(line) * sizeof(char)); //save original line (WITH case sensitivity) for writing it in its entirety into the intermediate file
 					origLine = stringCopy(line);
@@ -304,15 +320,21 @@ void pass1(char* filename)
 							//---Check For Operation
 
 							char *tempLine = stringCopy(line);
-							if (isLabel(tempLine) == 1)
+							if (isLabel(tempLine) == 1) {
 								label = processFirst(&tempLine); //we are guaranteed to find atleast something
+								//free(label); //TODO... this should work but it doesnt
+							}
 							else
 								label = returnEmptyString();
 
 							operation = processFirst(&tempLine);
 
+							freeMem(&tempLine);
+
 							if (isEmpty(operation) != 1) //we have an operation
 							{
+								freeMem(&operation);
+
 								//--------------------PROCESS Full Instruction
 
 								int *newVars = malloc(4 * sizeof(int));
@@ -325,13 +347,13 @@ void pass1(char* filename)
 								);
 
 								if (strcmp(operation, "end") == 0) {
-									free(programLastLabel);
+									freeMem(&programLastLabel);
 									programLastLabel = operand;
 								}
 
 								//set new vars after running function
 								LOCCTR = newVars[0]; locctrAddition = newVars[1]; startFound = newVars[2]; endFound = newVars[3];
-								free(newVars); //TODO... free this memory
+								free(newVars);
 
 								//--------------------PRINT Full Instruction
 
@@ -368,9 +390,18 @@ void pass1(char* filename)
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
 									fputs("\n", ourIntermediateFile); //[\n]
 								}
+
+								//free(line);
+								freeMem(&label);
+								//free(operation); //TODO... this should work but it doesnt
+								//free(operand); //TODO... this should work but it doesnt
+								//free(comment); //TODO... this should work but it doesnt
+								//free(errors);
 							}
 							else //we are missing an operation
 							{
+								freeMem(&operation);
+
 								//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
 								char* errors = returnEmptyString();
@@ -402,6 +433,9 @@ void pass1(char* filename)
 									fputs(strCat(errors, "\n"), ourIntermediateFile); //[7]
 									fputs("\n", ourIntermediateFile); //[\n]
 								}
+
+								freeMem(&label);
+								freeMem(&errors);
 							}
 						}
 						else //we found a comment
@@ -415,6 +449,9 @@ void pass1(char* filename)
 						}
 					}
 					//ELSE... we ignore this blank line
+
+					//free(line); //TODO... this should work but it doesnt
+					freeMem(&origLine);
 
 				} while (getline(&line, &len, ourSourceFile) != -1 && endFound == 0);
 
@@ -477,9 +514,8 @@ void pass1(char* filename)
 
 		fclose(ourIntermediateFile); //close our intermediate file after writing to it
 
-		printf("finished PASS 1\n");
-
 		pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
+		freeMem(&interFileName);
 	}
 	else //INTERMEDIATE did not open properly
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
@@ -496,7 +532,7 @@ int* processFullInstruction(
 {
 	//Link up to our variables by reference
 	char *line = *_line; char *label = *_label; char *operationName = *_operation; char *operand = *_operand; char *errors = *_errors;
-	free(label); free(operationName); free(operand); //free the memory from the previous run (dont free line) | (errors is already empty)
+	freeMem(&label); freeMem(&operationName); freeMem(&operand); //free the memory from the previous run (dont free line) | (errors is already empty)
 
 	//INT FILE:  [1]copy, [2]locctr, [3]label, [4]mnemonics[operations](looked up)[directive], [5]operand(looked up), [6]comments, [7]errors, [\n]
 
@@ -507,7 +543,7 @@ int* processFullInstruction(
 		label = processFirst(&line);
 		if (isEmpty(label) == 1) 
 		{
-			free(label);
+			freeMem(&label);
 			label = returnEmptyString();
 		}
 		else //we have some sort of label
@@ -541,11 +577,13 @@ int* processFullInstruction(
 
 	//-------------------------OPERATION FIELD-------------------------
 
-	char* operationCode = getOpCode(operationName);
+	
 
-	if (strcmp(operationCode, "-1") != 0) //we have this mnemonic
+	if (strcmp(getOpCode(operationName), "-1") != 0) //we have this mnemonic
 	{
 		//---------------MNEMONIC FOUND---------------
+
+		char* operationCode = getOpCode(operationName);
 
 		//NOTE: all mnemonic add to the location counter BUT... we only add to it if everything is valid...
 
@@ -557,6 +595,7 @@ int* processFullInstruction(
 			if (isEmpty(operand) == 1)
 			{
 				errors = strCatFreeFirst(&errors, "x300x"); //missing operand
+				freeMem(&operand);
 				operand = returnEmptyString();
 			}
 			else
@@ -583,23 +622,23 @@ int* processFullInstruction(
 
 				if (isValidLabel(rawOperand) != 1)
 				{
-					if (isNumber16(operand) == 1)
+					if (isNumber16(rawOperand) == 1)
 					{
 
-						int secondHexDigitAtoF = (isxdigit(operand[1]) != 0 && isdigit(operand[1]) == 0) ? 1 : 0; //if we have a HEX number that starts with A -> F
-						if (secondHexDigitAtoF && operand[0] == '0') //and we have a leading 0
+						int secondHexDigitAtoF = (isxdigit(rawOperand[1]) != 0 && isdigit(rawOperand[1]) == 0) ? 1 : 0; //if we have a HEX number that starts with A -> F
+						if (secondHexDigitAtoF && rawOperand[0] == '0') //and we have a leading 0
 						{
 							//we have a HEX number that uses a leading 0 to distinguish itself from a Label
 
 							//shift everything to the left
 
-							operand = subString(operand, 1, strlen(operand) - 1);
+							rawOperand = subString(rawOperand, 1, strlen(rawOperand) - 1);
 						}
 						//ELSE... our hex number could have just started with a digit 0->9
 
 						//---Now see if this is the type of HEX number that we want
 
-						if (strlen(operand) % 2 != 0)
+						if (strlen(rawOperand) % 2 != 0)
 							errors = strCatFreeFirst(&errors, "x310x"); //hex number must be in bytes so you must have an even digit count
 						else //we can easily handle this operand as a HEX number
 							locctrAddition = 3;
@@ -609,6 +648,8 @@ int* processFullInstruction(
 				}
 				else //we can easily handle this operand as a label
 					locctrAddition = 3;
+
+				freeMem(&rawOperand);
 			}
 		}
 		else //RSUB doesnt require an operand but the operand field must equal something so we can print it
@@ -616,9 +657,9 @@ int* processFullInstruction(
 			locctrAddition = 3;
 			operand = returnEmptyString();
 		}
-
-		//free(operationName); TODO... this should work
+	
 		*_operation = operationCode;
+		freeMem(&operationName);
 	}
 	else //check if we have a directive
 	{
@@ -626,15 +667,12 @@ int* processFullInstruction(
 		{
 			//---------------DIRECTIVE FOUND---------------
 
-			operationCode = malloc(MAX_DIRECTIVE_SIZE * sizeof(char));
-			operationCode = operationName;
-
 			//NOTE: all directives have operands
 			operand = processFirst(&line);
 			if (isEmpty(operand) == 1) //missing operand
 			{
 				errors = strCatFreeFirst(&errors, "x400x");
-				//free(operand); //TODO... this should work
+				freeMem(&operand);
 				operand = returnEmptyString();
 			}
 			else //we have the operand we need
@@ -666,7 +704,7 @@ int* processFullInstruction(
 						else
 							errors = strCatFreeFirst(&errors, "x430x"); //max of 30 chars
 
-						//free(tempOperand); //TODO... this should work
+						//free(tempOperand); //TODO... this should work... but it doesnt
 					}
 					else if (operand[0] == 'x')
 					{
@@ -688,7 +726,7 @@ int* processFullInstruction(
 						else
 							errors = strCatFreeFirst(&errors, "x450x"); //number must be byte so must have even number of digits 
 
-						//free(tempOperand); //TODO... this should work
+						//free(tempOperand); //TODO... this should work... but it doesnt
 					}
 					else
 						errors = strCatFreeFirst(&errors, "x460x"); //you can only pass a string or hex value as the operand to byte 
@@ -735,7 +773,6 @@ int* processFullInstruction(
 			}
 
 			*_operation = operationName;
-			//free(operationCode); TODO... this should work
 		}
 		else
 		{
@@ -747,7 +784,6 @@ int* processFullInstruction(
 			operand = returnEmptyString();
 
 			*_operation = operationName;
-			//free(operationCode); TODO... this should work
 		}
 	}
 
@@ -771,6 +807,12 @@ int* processFullInstruction(
 #pragma endregion
 
 #pragma region HELPER FUNCTIONS
+
+void freeMem(char **l) {
+	char* line = *l;
+	if (strlen(line) > 0)
+		free(line);
+}
 
 //-------------------------SPECIFIC String Processing Functions-------------------------
 
@@ -804,8 +846,8 @@ char* processFirst(char** l) //actually return our first word found, by referenc
 			//calculate line substring
 			int sizeOfLine = (strlen(line) - firstLength);
 			char *lineWithoutFirst = subString(line, firstLength, sizeOfLine);
-			//TODO... free line here... (this isnt working for reasons)
 			*l = lineWithoutFirst;
+			freeMem(&line);
 
 			return first;
 		}
@@ -839,9 +881,12 @@ int removeSpacesFront(char** l) { //returns how many spaces where removed
 			resultLine = returnEmptyString(); //nothing useful is left in the line
 		else{
 			resultLine = subString(line, lineID, (strlen(line) - lineID));
-			//TODO... free line here... (this isnt working for reasons)
+			
 			*l = resultLine;
 		}
+
+		//free(line); //TODO... I beleive this should work but it doesnt
+
 		return lineID;
 	}
 	else {
@@ -969,8 +1014,7 @@ char* itoa10(int num)
 		base10Str[index] = '\0'; // Append string terminator  
 
 		char *base10StrRev = reverse(base10Str); // Reverse the string
-		if(strlen(base10Str) > 0)
-			free(base10Str);
+		freeMem(&base10Str);
 
 		//---ADD negative sign (if needed)
 		
@@ -979,8 +1023,7 @@ char* itoa10(int num)
 			result = strCat("-", base10StrRev);
 		else
 			result = stringCopy(base10StrRev);
-		if(strlen(base10StrRev) > 0)
-			free(base10StrRev);
+		freeMem(&base10StrRev);
 
 		return result;
 	}
@@ -1064,7 +1107,7 @@ char* strCatFreeFirst(char** fS, char* lastString)
 
 	newString[newLength] = '\0'; //at last index insert null terminator
 
-	free(firstString);
+	freeMem(&firstString);
 
 	return newString;
 }
