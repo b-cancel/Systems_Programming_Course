@@ -28,6 +28,9 @@ char* concatBack(char *str, int quantity, char c);
 
 int errorInErros(char * error, char * errors);
 
+int charToAscii10(char c);
+char* lettersToHex(char * letters);
+
 #pragma endregion
 
 
@@ -229,14 +232,41 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 												) 
 											{ //We have a VALID mnemonic
 
-												//start		-> locctr counter
-												//end		-> no obj code
-												//byte		-> (we only care for what is inbetween the ' and other ') IF x mode (copy thing over) ELSE IF c mode (convert text to hex and copy that over)
-												//word		-> convert operand to HEX... copy over... make sure the string is 6 spaces larger (if no concat 0s in front)
-												//resb		-> literally just 4096
-												//resw		-> literally just 1
+												if (strcmp(Mnemonic, "start") == 0) { //guaranteed to only happen once
+													if (errorInErros("x910x", Errors) == 0)
+														objectCode = strCat_2(objectCode, LOCCTR);
+													else
+														objectCode = strCat_2(objectCode, "XXXX");
+												}
+												else if (strcmp(Mnemonic, "end") == 0) { //guaranteed to only happen once
+													; //no object code is produced for our listing file
+												}
+												else if (strcmp(Mnemonic, "byte") == 0) {
+													//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
 
-												objectCode = strCat_2(objectCode, "DIRYYY");
+													char * between;
+													if (Operand[0] == 'x')
+														between = subString_2(Operand, 2, strlen(Operand) - 3);
+													else 
+														between = lettersToHex(subString_2(Operand, 2, strlen(Operand) - 3));
+
+													int add0sp = 6 - strlen(between);
+													if (add0sp > 0)
+														objectCode = strCat_2(objectCode, concatBack(between, add0sp, ' '));
+													else
+														objectCode = strCat_2(objectCode, between);
+												}
+												else if (strcmp(Mnemonic, "word") == 0) {
+													char* base16 = b10Str_To_b16Str(Operand);
+													int add0sp = 6 - strlen(base16);
+													objectCode = strCat_2(objectCode, concatBack(base16, add0sp, ' '));
+												}
+												else if (strcmp(Mnemonic, "resb") == 0) {
+													objectCode = strCat_2(objectCode, "  4096");
+												}
+												else { //this MUST be "RESW"
+													objectCode = strCat_2(objectCode, "     1");
+												}
 											}
 											else
 												objectCode = strCat_2(objectCode, "DIRXXX");
@@ -257,10 +287,28 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 												errorInErros("330", Errors) == 0
 												)
 											{ //We have a VALID operand (Label)
-												if(Operand[strlen(Operand)-2] == ',')
-													objectCode = strCat_2(Mnemonic, "INDY");
-												else
-													objectCode = strCat_2(Mnemonic, "REGY");
+												if (Operand[strlen(Operand) - 2] == ',') {
+													char * regy = subString_2(Operand, 0, strlen(Operand) - 2);
+													int index = getValueIndexSYMTBL_2(regy);
+													if (index == -1) { //we did not find this label in our symbol table
+														Errors = strCatFreeFirst(&Errors, "x330x");
+														objectCode = strCat_2(Mnemonic, "XXXX");
+													}
+													else {
+														int val = atoi(symbolTbl_2[index].value);
+														val += 9000;
+														objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(val));
+													}
+												}
+												else {
+													int index = getValueIndexSYMTBL_2(Operand);
+													if (index == -1) { //we did not find this label in our symbol table
+														Errors = strCatFreeFirst(&Errors, "x330x");
+														objectCode = strCat_2(Mnemonic, "XXXX");
+													}
+													else
+														objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(symbolTbl_2[index].value));
+												}
 											}
 											else //we have an INVALID operand (label)
 												objectCode = strCat_2(Mnemonic, "XXXX");
@@ -330,8 +378,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	-code records
 	-end record
 	*/
-
-	//TODO figure out what to do with linkage records...
 }
 
 #pragma region Helper Functions
@@ -438,6 +484,49 @@ int errorInErros(char * error, char * errors) //we ASSUME the length of errors a
 	}
 
 	return 0; //we tried searching all the errors and did not locate the one we were looking for
+}
+
+int charToAscii10(char c) {
+	switch (c)
+	{
+	case 'a': return 97;
+	case 'b': return 98;
+	case 'c': return 99;
+	case 'd': return 100;
+	case 'e': return 101;
+	case 'f': return 102;
+	case 'g': return 103;
+	case 'h': return 104;
+	case 'i': return 105;
+	case 'j': return 106;
+	case 'k': return 107;
+	case 'l': return 108;
+	case 'm': return 109;
+	case 'n': return 110;
+	case 'o': return 111;
+	case 'p': return 112;
+	case 'q': return 113;
+	case 'r': return 114;
+	case 's': return 115;
+	case 't': return 116;
+	case 'u': return 117;
+	case 'v': return 118;
+	case 'w': return 119;
+	case 'x': return 120;
+	case 'y': return 121;
+	default: return 122; //this MUST be z
+	}
+}
+
+char* lettersToHex(char * letters) {
+	char * hex = returnEmptyString_2();
+	for (int i = 0; i < strlen(letters); i++) {
+		char * temp = malloc(2 * sizeof(char));
+		temp[0] = charToAscii10(letters[i]);
+		temp[1] = '/0';
+		hex = strCatFreeFirst_2(&hex, temp);
+	}
+	return hex;
 }
 
 #pragma endregion
