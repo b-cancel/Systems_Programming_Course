@@ -35,7 +35,6 @@ I am using this because its my first time using C
 //NTS: this is because every .c file get its own .obj file
 #include "commands.h"
 #include "pass1.h"
-//#include "pass1.h" //include for phase 2 of 2 pass assembler
 
 //prototypes
 void clearStrings();

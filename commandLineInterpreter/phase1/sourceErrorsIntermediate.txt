@@ -1,0 +1,622 @@
+COPY    START   FFFF1		COPY FILE FROM INPUT TO OUTPUT
+
+
+
+
+
+
+x040x
+
+COPY    START   100Z		COPY FILE FROM INPUT TO OUTPUT
+
+
+
+
+
+
+x030x
+
+COPY    START   FFF0		COPY FILE FROM INPUT TO OUTPUT
+65520
+copy
+start
+fff0
+copy file from input to output
+
+
+FIRST   STL     RETADR		SAVE RETURN ADDRESS
+65520
+first
+14
+retadr
+save return address
+
+
+CLOOP   JSUB    RDREC		READ INPUT RECORD
+65523
+cloop
+48
+rdrec
+read input record
+
+
+	LDA	LENGTH		TEST FOR EOF (LENGTH = 0)
+65526
+
+00
+length
+test for eof (length = 0)
+
+
+	COMP    ZERO
+65529
+
+28
+zero
+
+
+
+	JEQ     ENDFIL		EXIT IF EOF FOUND
+65532
+
+30
+endfil
+exit if eof found
+
+
+	JSUB	WRREC		WRITE OUTPUT RECORD
+65535
+
+48
+wrrec
+write output record
+x910x
+
+	J       CLOOP		LOOP
+65538
+
+3C
+cloop
+loop
+x910x
+
+ENDFIL  LDA     EOF		INSERT END OF FILE MARKER
+65541
+endfil
+00
+eof
+insert end of file marker
+x910x
+
+	STA     BUFFER
+65544
+
+0C
+buffer
+
+x910x
+
+	LDA     THREE		SET LENGTH = 3
+65547
+
+00
+three
+set length = 3
+x910x
+
+	STA     LENGTH
+65550
+
+0C
+length
+
+x910x
+
+	JSUB    WRREC		WRITE EOF
+65553
+
+48
+wrrec
+write eof
+x910x
+
+	LDL     RETADR		GET RETURN ADDRESS
+65556
+
+08
+retadr
+get return address
+x910x
+
+	RSUB             	RETURN TO CALLER
+65559
+
+4C
+
+return to caller
+x910x
+
+THING2 START 100 WHY ARE WE STARTING AGAIN THO?
+65562
+thing2
+start
+100
+why are we starting again tho?
+x200xx910x
+
+EOF     BYTE    C'EOF'
+65562
+eof
+byte
+c'eof'
+
+x910x
+
+ZERO    WORD    0
+65565
+zero
+word
+0
+
+x910x
+
+THREE   WORD
+65568
+three
+word
+
+
+x400xx910x
+
+FOUR	WORD 	16777218
+65568
+four
+word
+16777218
+
+x360xx910x
+
+RETADR  RESW    1
+65568
+retadr
+resw
+1
+
+x910x
+
+LENGTH  RESW    1		LENGTH OF RECORD
+65571
+length
+resw
+1
+length of record
+x910x
+
+BUFFER  RESB    465		4096-BYTE BUFFER AREA
+65574
+buffer
+resb
+465
+4096-byte buffer area
+x910x
+
+BUFF  RESB    65000		4096-BYTE BUFFER AREA
+66039
+buff
+resb
+65000
+4096-byte buffer area
+x900xx910x
+
+BUFI	RESB	FF
+131039
+bufi
+resb
+ff
+
+x340xx900xx910x
+
+BUFFER2  RESB    40Z6		4096-BYTE BUFFER AREA
+131039
+buffer2
+resb
+40z6
+4096-byte buffer area
+x130xx340xx900xx910x
+
+.
+
+
+
+
+
+
+
+.	SUBROUTINE TO READ RECORD INTO BUFFER
+
+
+
+
+
+
+
+.
+
+
+
+
+
+
+
+RDREC   LDX     ZERO		CLEAR LOOP COUNTER
+131039
+rdrec
+04
+zero
+clear loop counter
+x900xx910x
+
+	LDA     ZERO		CLEAR A TO ZERO
+131042
+
+00
+zero
+clear a to zero
+x900xx910x
+
+RLOOP   TD      INPUT		TEST INPUT DEVICE
+131045
+rloop
+E0
+input
+test input device
+x900xx910x
+
+	JEQ     RLOOP		LOOP UNTIL READY
+131048
+
+30
+rloop
+loop until ready
+x900xx910x
+
+	RD      INPUT		READ CHARACTER INTO REGISTAR A
+131051
+
+D8
+input
+read character into registar a
+x900xx910x
+
+	COMP    ZERO		TEST FOR END OF RECORD (X'00')
+131054
+
+28
+zero
+test for end of record (x'00')
+x900xx910x
+
+	COMP
+131057
+
+28
+
+
+x300xx900xx910x
+
+	COMP 2Z35
+131057
+
+28
+2z35
+
+x320xx900xx910x
+
+	COMP 343
+131057
+
+28
+343
+
+x310xx900xx910x
+
+	COMP 0A432
+131057
+
+28
+0a432
+
+x900xx910x
+
+	COMP 4445
+131060
+
+28
+4445
+
+x900xx910x
+
+	JEQ     EXIT		EXIT LOOP IF EOF
+131063
+
+30
+exit
+exit loop if eof
+x900xx910x
+
+	STCH    BUFFER,X	STORE CHARCTER IN BUFFER
+131066
+
+54
+buffer,x
+store charcter in buffer
+x900xx910x
+
+	TIX     MAXLEN		LOOP UNLESS MAX LENGTH
+131069
+
+2C
+maxlen
+loop unless max length
+x900xx910x
+
+	JLT     RLOOP	  	  HAS BEEN REACHED
+131072
+
+38
+rloop
+has been reached
+x900xx910x
+
+TOOLONGBRO SOMEINVALIDOP
+131075
+toolongbro
+someinvalidop
+
+
+x130xx210xx900xx910x
+
+EXIT    STX     LENGTH		SAVE RECORD LENGTH
+131075
+exit
+10
+length
+save record length
+x900xx910x
+
+	RSUB                    RETURN TO CALLER
+131078
+
+4C
+
+return to caller
+x900xx910x
+
+INPUT
+131081
+
+
+
+
+x140xx900xx910x
+
+INPUT   BYTE    X'F1'		CODE FOR INPUT DEVICE
+131081
+input
+byte
+x'f1'
+code for input device
+x900xx910x
+
+INPUT2   BYTE    C'01234567890123456789012345678901234567890123456789'		CODE FOR INPUT DEVICE
+131082
+input2
+byte
+c'01234567890123456789012345678901234567890123456789'
+code for input device
+x430xx900xx910x
+
+INPUT3   BYTE    X'123456781234567812345678123456789999'		CODE FOR INPUT DEVICE
+131082
+input3
+byte
+x'123456781234567812345678123456789999'
+code for input device
+x440xx900xx910x
+
+INPUT4   BYTE    X'ABC'		CODE FOR INPUT DEVICE
+131082
+input4
+byte
+x'abc'
+code for input device
+x450xx900xx910x
+
+INPUT5   BYTE    A'ABC2'		CODE FOR INPUT DEVICE
+131082
+input5
+byte
+a'abc2'
+code for input device
+x460xx900xx910x
+
+INPUT   BYTE    X'ABCZ'		CODE FOR INPUT DEVICE
+131082
+input
+byte
+x'abcz'
+code for input device
+x100xx410xx900xx910x
+
+MAXLEN	WORD	40593
+131082
+maxlen
+word
+40593
+
+x900xx910x
+
+MAXLEN	WORD	4Z59
+131085
+maxlen
+word
+4z59
+
+x100xx340xx900xx910x
+
+.
+
+
+
+
+
+
+
+.	SUBROUTINE TO WRITE RECORD FROM BUFFER
+
+
+
+
+
+
+
+.
+
+
+
+
+
+
+
+WRREK
+131085
+
+
+
+
+x140xx900xx910x
+
+WRREC   LDX    ZERO		CLEAR LOOP COUNTER
+131085
+wrrec
+04
+zero
+clear loop counter
+x900xx910x
+
+9TESTS	BYTE    X'ABCZ'		CODE FOR INPUT DEVICE
+131088
+9tests
+byte
+x'abcz'
+code for input device
+x120xx410xx900xx910x
+
+WLOOP   TD     OUTPUT		TEST OUTPUT DEVICE
+131088
+wloop
+E0
+output
+test output device
+x900xx910x
+
+	JEQ    WLOOP		LOOP UNTIL READY
+131091
+
+30
+wloop
+loop until ready
+x900xx910x
+
+	LDCH   BUFFER,X	        GET CHARCTER FROM BUFFER
+131094
+
+50
+buffer,x
+get charcter from buffer
+x900xx910x
+
+	WD     OUTPUT		WRITE CHARACTER
+131097
+
+DC
+output
+write character
+x900xx910x
+
+	TIX    LENGTH		LOOP UNTIL ALL CHARACTERS
+131100
+
+2C
+length
+loop until all characters
+x900xx910x
+
+	JLT    WLOOP	  	  HAVE BEEN WRITTEN
+131103
+
+38
+wloop
+have been written
+x900xx910x
+
+	RSUB                    RETURN TO CALLER
+131106
+
+4C
+
+return to caller
+x900xx910x
+
+OUTPUT  BYTE   X'05'		CODE FOR OUTPUT DEVICE
+131109
+output
+byte
+x'05'
+code for output device
+x900xx910x
+
+	ENDED    FIRST
+131110
+
+ended
+
+first
+x210xx900xx910x
+
+
+
+
+
+
+
+x020x
+
+---Symbol Table (string -> int)
+copy maps to 65520
+first maps to 65520
+cloop maps to 65523
+endfil maps to 65541
+thing2 maps to 65562
+eof maps to 65562
+zero maps to 65565
+three maps to 65568
+four maps to 65568
+retadr maps to 65568
+length maps to 65571
+buffer maps to 65574
+buff maps to 66039
+bufi maps to 131039
+rdrec maps to 131039
+rloop maps to 131045
+exit maps to 131075
+input maps to 131081
+input2 maps to 131082
+input3 maps to 131082
+input4 maps to 131082
+input5 maps to 131082
+maxlen maps to 131082
+wrrec maps to 131085
+wloop maps to 131088
+output maps to 131109
+

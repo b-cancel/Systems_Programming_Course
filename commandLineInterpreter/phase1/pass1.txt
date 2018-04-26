@@ -160,7 +160,6 @@ struct charToInt {
 	char* key;
 	int value;
 };
-
 keyToValue symbolTbl[MAX_SYMBOLS]; //keys must be a continuous stream of characters
 int emptyIndex;
 
@@ -502,7 +501,7 @@ void pass1(char* filename)
 			fputs("---Symbol Table (string -> int)\n", ourIntermediateFile);
 			for (int i = 0; i < emptyIndex; i++) {
 
-				char* symStr = strCat(symbolTbl[i].key, " ");
+				char* symStr = strCat(symbolTbl[i].key, " maps to ");
 				char* val = itoa10(symbolTbl[i].value);
 
 				symStr = strCatFreeFirst(&symStr, val);
@@ -518,6 +517,7 @@ void pass1(char* filename)
 		printf("PASS 1 COMPLETE\n\n");
 
 		pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
+		freeMem(&interFileName);
 	}
 	else //INTERMEDIATE did not open properly
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
@@ -1179,6 +1179,7 @@ int isNumber16(char* num) {
 			return 0;
 	return 1;
 }
+
 
 //-------------------------Symbol Table Functions (Symbol | Location)-------------------------
 

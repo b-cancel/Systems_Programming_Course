@@ -1,0 +1,428 @@
+COPY    START   1000		COPY FILE FROM INPUT TO OUTPUT
+4096
+copy
+start
+1000
+copy file from input to output
+
+
+FIRST   STL     RETADR		SAVE RETURN ADDRESS
+4096
+first
+14
+retadr
+save return address
+
+
+CLOOP   JSUB    RDREC		READ INPUT RECORD
+4099
+cloop
+48
+rdrec
+read input record
+
+
+	LDA	LENGTH		TEST FOR EOF (LENGTH = 0)
+4102
+
+00
+length
+test for eof (length = 0)
+
+
+	COMP    ZERO
+4105
+
+28
+zero
+
+
+
+	JEQ     ENDFIL		EXIT IF EOF FOUND
+4108
+
+30
+endfil
+exit if eof found
+
+
+	JSUB	WRREC		WRITE OUTPUT RECORD
+4111
+
+48
+wrrec
+write output record
+
+
+	J       CLOOP		LOOP
+4114
+
+3C
+cloop
+loop
+
+
+ENDFIL  LDA     EOF		INSERT END OF FILE MARKER
+4117
+endfil
+00
+eof
+insert end of file marker
+
+
+	STA     BUFFER
+4120
+
+0C
+buffer
+
+
+
+	LDA     THREE		SET LENGTH = 3
+4123
+
+00
+three
+set length = 3
+
+
+	STA     LENGTH
+4126
+
+0C
+length
+
+
+
+	JSUB    WRREC		WRITE EOF
+4129
+
+48
+wrrec
+write eof
+
+
+	LDL     RETADR		GET RETURN ADDRESS
+4132
+
+08
+retadr
+get return address
+
+
+	RSUB             	RETURN TO CALLER
+4135
+
+4C
+
+return to caller
+
+
+EOF     BYTE    C'EOF'
+4138
+eof
+byte
+c'eof'
+
+
+
+THREE   WORD    3
+4141
+three
+word
+3
+
+
+
+ZERO    WORD    0
+4144
+zero
+word
+0
+
+
+
+RETADR  RESW    1
+4147
+retadr
+resw
+1
+
+
+
+LENGTH  RESW    1		LENGTH OF RECORD
+4150
+length
+resw
+1
+length of record
+
+
+BUFFER  RESB    4096		4096-BYTE BUFFER AREA
+4153
+buffer
+resb
+4096
+4096-byte buffer area
+
+
+.
+
+
+
+
+
+
+
+.	SUBROUTINE TO READ RECORD INTO BUFFER
+
+
+
+
+
+
+
+.
+
+
+
+
+
+
+
+RDREC   LDX     ZERO		CLEAR LOOP COUNTER
+8249
+rdrec
+04
+zero
+clear loop counter
+
+
+	LDA     ZERO		CLEAR A TO ZERO
+8252
+
+00
+zero
+clear a to zero
+
+
+RLOOP   TD      INPUT		TEST INPUT DEVICE
+8255
+rloop
+E0
+input
+test input device
+
+
+	JEQ     RLOOP		LOOP UNTIL READY
+8258
+
+30
+rloop
+loop until ready
+
+
+	RD      INPUT		READ CHARACTER INTO REGISTAR A
+8261
+
+D8
+input
+read character into registar a
+
+
+	COMP    ZERO		TEST FOR END OF RECORD (X'00')
+8264
+
+28
+zero
+test for end of record (x'00')
+
+
+	JEQ     EXIT		EXIT LOOP IF EOF
+8267
+
+30
+exit
+exit loop if eof
+
+
+	STCH    BUFFER,X	STORE CHARCTER IN BUFFER
+8270
+
+54
+buffer,x
+store charcter in buffer
+
+
+	TIX     MAXLEN		LOOP UNLESS MAX LENGTH
+8273
+
+2C
+maxlen
+loop unless max length
+
+
+	JLT     RLOOP	  	  HAS BEEN REACHED
+8276
+
+38
+rloop
+has been reached
+
+
+EXIT    STX     LENGTH		SAVE RECORD LENGTH
+8279
+exit
+10
+length
+save record length
+
+
+	RSUB                    RETURN TO CALLER
+8282
+
+4C
+
+return to caller
+
+
+INPUT   BYTE    X'F1'		CODE FOR INPUT DEVICE
+8285
+input
+byte
+x'f1'
+code for input device
+
+
+MAXLEN	WORD	4096
+8286
+maxlen
+word
+4096
+
+
+
+.
+
+
+
+
+
+
+
+.	SUBROUTINE TO WRITE RECORD FROM BUFFER
+
+
+
+
+
+
+
+.
+
+
+
+
+
+
+
+WRREC   LDX    ZERO		CLEAR LOOP COUNTER
+8289
+wrrec
+04
+zero
+clear loop counter
+
+
+WLOOP   TD     OUTPUT		TEST OUTPUT DEVICE
+8292
+wloop
+E0
+output
+test output device
+
+
+	JEQ    WLOOP		LOOP UNTIL READY
+8295
+
+30
+wloop
+loop until ready
+
+
+	LDCH   BUFFER,X	        GET CHARCTER FROM BUFFER
+8298
+
+50
+buffer,x
+get charcter from buffer
+
+
+	WD     OUTPUT		WRITE CHARACTER
+8301
+
+DC
+output
+write character
+
+
+	TIX    LENGTH		LOOP UNTIL ALL CHARACTERS
+8304
+
+2C
+length
+loop until all characters
+
+
+	JLT    WLOOP	  	  HAVE BEEN WRITTEN
+8307
+
+38
+wloop
+have been written
+
+
+	RSUB                    RETURN TO CALLER
+8310
+
+4C
+
+return to caller
+
+
+OUTPUT  BYTE   X'05'		CODE FOR OUTPUT DEVICE
+8313
+output
+byte
+x'05'
+code for output device
+
+
+	END    FIRST
+8314
+
+end
+first
+
+
+
+---Symbol Table (string -> int)
+copy maps to 4096
+first maps to 4096
+cloop maps to 4099
+endfil maps to 4117
+eof maps to 4138
+three maps to 4141
+zero maps to 4144
+retadr maps to 4147
+length maps to 4150
+buffer maps to 4153
+rdrec maps to 8249
+rloop maps to 8255
+exit maps to 8279
+input maps to 8285
+maxlen maps to 8286
+wrrec maps to 8289
+wloop maps to 8292
+output maps to 8313
+

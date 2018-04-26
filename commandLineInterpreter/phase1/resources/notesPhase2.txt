@@ -45,6 +45,44 @@
 *Program Too Long (larger than 32,768 bytes of memory or 7FFFh) [bigger than 32K]
 *Instruction operands must be of the form operand or operand,X , where operand is either a symbol that is used as a label in the source program, or an actual hexadecimal address. Hexadecimal addresses that would begin with 'A' through 'F', must have a leading '0' to distinguish them from labels.
 
+----------DONE IN PASS 1----------
+
+LABEL SPECIFIC-----
+-Illegal format in label field
+-Duplicate label definition
+-Too many symbols in source program
+
+OPERATION SPECIFIC-----
+-Missing operation code
+-Unrecognized operation code (I assume as in not a directive and not a mnemonic)
+-Illegal format in operation field (I assume as in not a directive and not a mnemonic)
+
+DIRECTIVE SPECIFIC-----
+---START
+-Missing or misplaced START statement
+-Duplicate or misplaced START statement
+-Illegal operand in START statement
+-Missing or misplaced operand in START statement
+---BYTE
+-Missing or misplaced operand in BYTE statement
+-Illegal operand in BYTE statement 
+-Odd length hex string in BYTE statement
+---WORD
+-Missing or misplaced operand in WORD statement
+-Illegal operand in WORD statement
+---RESB
+-Missing or misplaced operand in RESB statement
+-Illegal operand in RESB statement
+---RESW
+-Missing or misplaced operand in RESW statement
+-Illegal operand in RESW statement
+---END
+-Missing or misplaced operand in END statement
+-Illegal operand in END statement
+
+OTHER-----
+-Program too long (32767)
+
 //----------------------------------------------------------------------------------------------------
 
 /*
