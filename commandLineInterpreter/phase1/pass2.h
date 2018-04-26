@@ -16,6 +16,21 @@
 
 #pragma endregion
 
+#pragma region Prototypes
+
+char* b10Str_To_b16Str(char* base10);
+char* b10Int_To_b16Str(int b10Num);
+
+char int_To_Char(int i);
+
+char* concatFront(char *str, int quantity, char c);
+char* concatBack(char *str, int quantity, char c);
+
+int errorInErros(char * error, char * errors);
+
+#pragma endregion
+
+
 #pragma region Stuff also in Pass 1 (Part 1)
 
 //NOTE: I could just call the functions in pass 1 but I don't have the time to try to make it work (after many attempts I was unsuccessful)
@@ -127,8 +142,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	else
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 
-	printSymbolTable_2();
-
 	printf("READING 1\n\n");
 
 	//-------------------------2nd File Reading(to process the data in the intermeditae file)-------------------------
@@ -166,15 +179,11 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 						switch (instructID)
 						{
 						case 1: line1 = stringCopy_2(line);  removeSpacesBack_2(&line1); break;
-						case 2: line2 = stringCopy_2(line);  removeSpacesBack_2(&line2); 
-							if (isEmpty_2(line2) == 1) {
-								line2 = malloc(5 * sizeof(char));
-								line2[0] = ' ';
-								line2[1] = ' ';
-								line2[2] = ' ';
-								line2[3] = ' ';
-								line2[4] = '\0';
-							}
+						case 2: //locctr (we might or might not have one)
+							line2 = stringCopy_2(line);  
+							removeSpacesBack_2(&line2); 
+							if (isEmpty_2(line2) == 1)
+								line2 = concatFront("", 4, ' ');
 							break;
 						case 3: line3 = stringCopy_2(line);  removeSpacesBack_2(&line3); break;
 						case 4: line4 = stringCopy_2(line);  removeSpacesBack_2(&line4); break;
@@ -190,7 +199,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 							//---create object code
 
-							char * objectCode;
+							char * objectCode = returnEmptyString_2();
 
 							//diretive -> obj code
 							//------------------------------
@@ -213,12 +222,12 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							//INVALID operand of valid mnemonic -> "XXXX"
 
 							//this is edited so we always have object code of size 6
-							char * objectCodeForListing; 
+							char * objectCodeForListing = returnEmptyString_2(); 
 
 							//---print to file
 							fputs(strCat_2(itoa10_2(instructNumber),"\t\t"), ourListingFile); //line number
 							fputs(strCat_2(line2, "\t\t"), ourListingFile); //locctr
-							fputs(objectCodeForListing, ourListingFile);
+							fputs(objectCodeForListing, ourListingFile); //object code
 							fputs(line1, ourListingFile); //source line
 							fputs(line7, ourListingFile); //error line
 							fputs("\n", ourListingFile);
@@ -270,6 +279,115 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 	//TODO figure out what to do with linkage records...
 }
+
+#pragma region Helper Functions
+
+char* b10Str_To_b16Str(char* base10) 
+{
+	return b10Int_To_b16Str(atoi(base10));
+}
+
+char* b10Int_To_b16Str(int b10Num) 
+{
+	//prep string
+	char *result = returnEmptyString_2();
+
+	//concat all remainders
+	while (b10Num > 15)
+	{
+		int res = b10Num / 16;
+		int rem = b10Num - (res * 16);
+		b10Num = res;
+
+		char* temp = concatFront(result, 1, int_To_Char(rem));
+		freeMem_2(&result);
+		result = temp;
+	}
+
+	//concat last quotient
+	char* temp = concatFront(result, 1, int_To_Char(b10Num));
+	freeMem_2(&result);
+	result = temp;
+
+	//return string
+	return result;
+}
+
+char int_To_Char(int i) {
+	switch (i)
+	{
+	case 0: return '0';
+	case 1: return '1';
+	case 2: return '2';
+	case 3: return '3';
+	case 4: return '4';
+	case 5: return '5';
+	case 6: return '6';
+	case 7: return '7';
+	case 8: return '8';
+	case 9: return '9';
+	case 10: return 'A';
+	case 11: return 'B';
+	case 12: return 'C';
+	case 13: return 'D';
+	case 14: return 'E';
+	default: return 'F';
+	}
+}
+
+char* concatFront(char *str, int quantity, char c)
+{
+	//memory allocation
+	char *newStr = malloc((strlen(str)+quantity+1) * sizeof(char));
+	int index = 0;
+	//concat desired char
+	for (int i = 0; i < quantity; i++, index++)
+		newStr[index] = c;
+	//concat rest of string
+	for (int i = 0; i < strlen(str); i++, index++)
+		newStr[index] = str[i];
+	//null terminator
+	newStr[index] = '\0';
+	//pass by reference
+	return newStr;
+}
+
+char* concatBack(char *str, int quantity, char c) 
+{
+	char *newStr = malloc((strlen(str) + quantity + 1) * sizeof(char));
+	int index = 0;
+	//concat rest of string
+	for (int i = 0; i < strlen(str); i++, index++)
+		newStr[index] = str[i];
+	//concat desired char
+	for (int i = 0; i < quantity; i++, index++)
+		newStr[index] = c;
+	//null terminator
+	newStr[index] = '\0';
+	//pass by reference
+	return newStr;
+}
+
+//NOTE: this only works because of the very specific ways errors where coded into the project
+int errorInErros(char * error, char * errors) //we ASSUME the length of errors are 3 digits
+{
+	int indexOfError = 0;
+
+	for (int i = 0; i < strlen(errors); i++) 
+	{
+		if (error[indexOfError] == errors[i])
+			indexOfError++; //continue searching this potential match
+		else
+			indexOfError = 0; //this is not a potential match
+		if (indexOfError == 3)
+			return 1;
+	}
+
+	return 0; //we tried searching all the errors and did not locate the one we were looking for
+}
+
+#pragma endregion
+
 
 #pragma region Stuff Also in Pass 1 (Part 2)
 
