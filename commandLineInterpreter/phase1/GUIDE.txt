@@ -55,8 +55,5 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 900 -> program length above 32768 byte limit (***READ BY PASS 2)
 910 -> LOCCTR is too big and should be smaller than (FFFF) base 16 (***READ BY PASS 2)
 
-NOTE: you told us not to implement ERROR CODES 330 -or- 420... so they are there but will not function (for now)
-
 //ERRORS my sample program does not test (but i tested myself): 000, 010, 110, 900
-//ERRORS my sample program does test: 020, 100, 120, 130, 200, 210, 300, 310, 320, 400, 410, 430, 440, 450, 460, 030, 040, 140, 340, 350, 360, 910
-350
+//All other ERRORS are tested in the sourceErrors.txt (all the errors are only showed in the intermediate file)

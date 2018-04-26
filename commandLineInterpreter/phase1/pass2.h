@@ -28,7 +28,6 @@ char* concatBack(char *str, int quantity, char c);
 
 int errorInErros(char * error, char * errors);
 
-int charToAscii10(char c);
 char* lettersToHex(char * letters);
 
 #pragma endregion
@@ -116,27 +115,43 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	//-------------------------1st File Reading(to populate symbol table)-------------------------
 	//NOTE: I could just pass over the symbol table from pass 1 but I don't have the time to try to make it work (after many attempts I was unsuccessful)
 
+	int longestErrorLine = 0;
+
 	FILE *ourIntermediateFile_SYMTBL = fopen(strCat_2("./", intermediateFileName), "r");
 	if (ourIntermediateFile_SYMTBL != NULL)
 	{
 		int readingInstructions = 1;
 		int firstTime = 1;
 
+		int instructID = 0;
+		int currLineCount = 0;
+
 		//keep reading our intermediate file until there is nothing left
 		while (getline(&line, &len, ourIntermediateFile_SYMTBL) != -1)
 		{
-			if (strcmp(subString_2(line, 0, strlen(line) - 1), "---Symbol Table (string -> int)") == 0)
-				readingInstructions = 0;
-
-			if (readingInstructions == 0) //we are reading in the symbol table
-			{
-				if (firstTime == 1)
-					firstTime = 0;
-				else {
-					char * label = processFirst_2(&line);
-					if (addSYMTBL_2(label, atoi(processFirst_2(&line))) == -2)
-						break;
+			if (readingInstructions == 1) {
+				if (strcmp(subString_2(line, 0, strlen(line) - 1), "---Symbol Table (string -> int)") == 0)
+					readingInstructions = 0; //the next line we use it to populate our symbol table
+				else 
+				{
+					//we have a set of 8 lines... line 7 contains the errors... i need to know what is the longest stream of errors and save that value
+					instructID++;
+					if (instructID == 7) {
+						int thisLength = strlen(line);
+						if (thisLength > longestErrorLine)
+							longestErrorLine = thisLength;
+					}
+					if (instructID == 8) {
+						currLineCount++;
+						instructID = 0;
+					}
 				}
+			}
+			else
+			{
+				char * label = processFirst_2(&line);
+				if (addSYMTBL_2(label, atoi(processFirst_2(&line))) == -2)
+					break;
 			}
 		}
 
@@ -165,8 +180,8 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 			char* Operand; //operand
 			char* Comment; //comments
 			char* Errors; //errrors
-			int currLineCount = 0;
 
+			int currLineCount = 0;
 			int readingInstructions = 1;
 
 			//keep reading our intermediate file until there is nothing left
@@ -187,6 +202,8 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							removeSpacesBack_2(&LOCCTR); 
 							if (isEmpty_2(LOCCTR) == 1)
 								LOCCTR = strCat_2(LOCCTR, "    ");
+							else
+								LOCCTR = b10Str_To_b16Str(LOCCTR);
 							break;
 						case 3: Label = stringCopy_2(line);  removeSpacesBack_2(&Label); break;
 						case 4: Mnemonic = stringCopy_2(line);  removeSpacesBack_2(&Mnemonic); break;
@@ -200,142 +217,155 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							instructID = 0;
 							int instructNumber = (8 * currLineCount);
 
-							//-------------------------create object code start-------------------------
+							if (isBlankLine_2(SourceLine) == 0) {
+								//-------------------------create object code start-------------------------
 
-							char * objectCode = returnEmptyString_2();
+								if (errorInErros("910", Errors) == 1)
+									LOCCTR = "XXXX";
 
-							if (SourceLine[0] == '.') //we have found a comment
-								objectCode = strCat_2(objectCode, "      ");
-							else //we have found an instruction
-							{
-								if (errorInErros("210", Errors) == 0) //you have an valid mnemonic (directive -or- operation)
+								char * objectCode = returnEmptyString_2();
+
+								if (SourceLine[0] == '.') //we have found a comment
+									objectCode = strCat_2(objectCode, "      ");
+								else //we have found an instruction
 								{
-									if (strlen(Mnemonic) != 2) //we are processing a VALID directive
+									if (errorInErros("210", Errors) == 0) //you have an valid mnemonic (directive -or- operation)
 									{
-										if (
-											errorInErros("400", Errors) == 0 &&
-											errorInErros("410", Errors) == 0 &&
-											errorInErros("420", Errors) == 0 &&
-											errorInErros("430", Errors) == 0 &&
-											errorInErros("440", Errors) == 0 &&
-											errorInErros("450", Errors) == 0 &&
-											errorInErros("460", Errors) == 0 &&
-											errorInErros("470", Errors) == 0 &&
-											errorInErros("480", Errors) == 0 &&
-											errorInErros("490", Errors) == 0
-											)
-										{ //We have a VALID operand (varies)
-
-											if (
-												errorInErros("x200x", Errors) == 0 && //we have an extra start directive
-												errorInErros("x140x", Errors) == 0 //we dont have a directive (only a label)
-												) 
-											{ //We have a VALID mnemonic
-
-												if (strcmp(Mnemonic, "start") == 0) { //guaranteed to only happen once
-													if (errorInErros("x910x", Errors) == 0)
-														objectCode = strCat_2(objectCode, LOCCTR);
-													else
-														objectCode = strCat_2(objectCode, "XXXX");
-												}
-												else if (strcmp(Mnemonic, "end") == 0) { //guaranteed to only happen once
-													; //no object code is produced for our listing file
-												}
-												else if (strcmp(Mnemonic, "byte") == 0) {
-													//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
-
-													char * between;
-													if (Operand[0] == 'x')
-														between = subString_2(Operand, 2, strlen(Operand) - 3);
-													else 
-														between = lettersToHex(subString_2(Operand, 2, strlen(Operand) - 3));
-
-													int add0sp = 6 - strlen(between);
-													if (add0sp > 0)
-														objectCode = strCat_2(objectCode, concatBack(between, add0sp, ' '));
-													else
-														objectCode = strCat_2(objectCode, between);
-												}
-												else if (strcmp(Mnemonic, "word") == 0) {
-													char* base16 = b10Str_To_b16Str(Operand);
-													int add0sp = 6 - strlen(base16);
-													objectCode = strCat_2(objectCode, concatBack(base16, add0sp, ' '));
-												}
-												else if (strcmp(Mnemonic, "resb") == 0) {
-													objectCode = strCat_2(objectCode, "  4096");
-												}
-												else { //this MUST be "RESW"
-													objectCode = strCat_2(objectCode, "     1");
-												}
-											}
-											else
-												objectCode = strCat_2(objectCode, "DIRXXX");
-										}
-										else //we have an INVALID operand (varies)
-											objectCode = strCat_2(objectCode, "DIRXXX");
-									}
-									else //we are processsing a VALID operation (NOTE: we know the operation is valid because we succesfully retreived its opcode)
-									{
-										if (strcmp("4C", Mnemonic) == 0) //we have the RSUB operation
-											objectCode = strCat_2(Mnemonic, "0000");
-										else //we have any other operation (operand should be a label) [make sure label is valid]
+										if (strlen(Mnemonic) != 2) //we are processing a VALID directive
 										{
 											if (
-												errorInErros("300", Errors) == 0 &&
-												errorInErros("310", Errors) == 0 &&
-												errorInErros("320", Errors) == 0 &&
-												errorInErros("330", Errors) == 0
+												errorInErros("400", Errors) == 0 &&
+												errorInErros("410", Errors) == 0 &&
+												errorInErros("420", Errors) == 0 &&
+												errorInErros("430", Errors) == 0 &&
+												errorInErros("440", Errors) == 0 &&
+												errorInErros("450", Errors) == 0 &&
+												errorInErros("460", Errors) == 0 &&
+												errorInErros("470", Errors) == 0 &&
+												errorInErros("480", Errors) == 0 &&
+												errorInErros("490", Errors) == 0
 												)
-											{ //We have a VALID operand (Label)
-												if (Operand[strlen(Operand) - 2] == ',') {
-													char * regy = subString_2(Operand, 0, strlen(Operand) - 2);
-													int index = getValueIndexSYMTBL_2(regy);
-													if (index == -1) { //we did not find this label in our symbol table
-														Errors = strCatFreeFirst(&Errors, "x330x");
-														objectCode = strCat_2(Mnemonic, "XXXX");
+											{ //We have a VALID operand (varies)
+
+												if (
+													errorInErros("x200x", Errors) == 0 && //we have an extra start directive
+													errorInErros("x140x", Errors) == 0 //we dont have a directive (only a label)
+													)
+												{ //We have a VALID mnemonic
+
+													if (strcmp(Mnemonic, "start") == 0) { //guaranteed to only happen once
+														if (errorInErros("x910x", Errors) == 0) {
+															objectCode = strCat_2(objectCode, LOCCTR);
+														}
+														else
+															objectCode = strCat_2(objectCode, "XXXX");
+														int add0sp = 6 - strlen(objectCode);
+														objectCode = concatBack(objectCode, add0sp, ' ');
 													}
-													else {
-														int val = atoi(symbolTbl_2[index].value);
-														val += 9000;
-														objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(val));
+													else if (strcmp(Mnemonic, "end") == 0) { //guaranteed to only happen once
+														objectCode = "      "; //no object code is produced for our listing file
+														LOCCTR = "      ";
+													}
+													else if (strcmp(Mnemonic, "byte") == 0) {
+														//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
+
+														char * between;
+														if (Operand[0] == 'x')
+															between = subString_2(Operand, 2, strlen(Operand) - 3);
+														else
+															between = lettersToHex(subString_2(Operand, 2, strlen(Operand) - 3));
+
+														int add0sp = 6 - strlen(between);
+														if (add0sp > 0)
+															objectCode = strCat_2(objectCode, concatBack(between, add0sp, ' '));
+														else
+															objectCode = strCat_2(objectCode, between);
+													}
+													else if (strcmp(Mnemonic, "word") == 0) {
+														char* base16 = b10Str_To_b16Str(Operand);
+														int add0sp = 6 - strlen(base16);
+														objectCode = strCat_2(objectCode, concatFront(base16, add0sp, '0'));
+													}
+													else if (strcmp(Mnemonic, "resb") == 0) {
+														objectCode = strCat_2(objectCode, "4096  ");
+													}
+													else { //this MUST be "RESW"
+														objectCode = strCat_2(objectCode, "1     ");
 													}
 												}
-												else {
-													int index = getValueIndexSYMTBL_2(Operand);
-													if (index == -1) { //we did not find this label in our symbol table
-														Errors = strCatFreeFirst(&Errors, "x330x");
-														objectCode = strCat_2(Mnemonic, "XXXX");
-													}
-													else
-														objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(symbolTbl_2[index].value));
-												}
+												else
+													objectCode = strCat_2(objectCode, "DIRXXX");
 											}
-											else //we have an INVALID operand (label)
-												objectCode = strCat_2(Mnemonic, "XXXX");
+											else //we have an INVALID operand (varies)
+												objectCode = strCat_2(objectCode, "DIRXXX");
 										}
-										//NOTE: we are NOT addressing operations (add | and | div | mul | or | sub)
+										else //we are processsing a VALID operation (NOTE: we know the operation is valid because we succesfully retreived its opcode)
+										{
+											if (strcmp("4C", Mnemonic) == 0) //we have the RSUB operation
+												objectCode = strCat_2(Mnemonic, "0000");
+											else //we have any other operation (operand should be a label) [make sure label is valid]
+											{
+												if (
+													errorInErros("300", Errors) == 0 &&
+													errorInErros("310", Errors) == 0 &&
+													errorInErros("320", Errors) == 0 &&
+													errorInErros("330", Errors) == 0
+													)
+												{ //We have a VALID operand (Label)
+													if (Operand[strlen(Operand) - 2] == ',') //indexed label
+													{
+														char * indy = subString_2(Operand, 0, strlen(Operand) - 2); //get rid of ,X)
+														int index = getKeyIndexSYMTBL_2(indy);
+														if (index == -1) { //we did not find this label in our symbol table
+															Errors = strCatFreeFirst_2(&Errors, "x330x");
+															objectCode = strCat_2(Mnemonic, "XXXX");
+														}
+														else {
+															int val = symbolTbl_2[index].value;
+															val += 32768;
+															objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(val));
+														}
+													}
+													else //non indexed label
+													{
+														int index = getKeyIndexSYMTBL_2(Operand);
+														if (index == -1) { //we did not find this label in our symbol table
+															Errors = strCatFreeFirst_2(&Errors, "x330x");
+															objectCode = strCat_2(Mnemonic, "XXXX");
+														}
+														else
+															objectCode = strCat_2(Mnemonic, b10Int_To_b16Str(symbolTbl_2[index].value));
+													}
+												}
+												else //we have an INVALID operand (label)
+													objectCode = strCat_2(Mnemonic, "XXXX");
+											}
+											//NOTE: we are NOT addressing operations (add | and | div | mul | or | sub)
+										}
 									}
+									else //we dont have a VALID mnemonic so by definition its impossible to have a VALID operand
+										objectCode = concatFront(objectCode, 6, 'X');
+
+									//this is edited so we always have object code of size 6
+									int add0s = 6 - strlen(objectCode);
+									objectCode = concatFront(objectCode, add0s, '0');
 								}
-								else //we dont have a VALID mnemonic so by definition its impossible to have a VALID operand
-									objectCode = concatFront(objectCode, 6, 'X');
+
+								//-------------------------create object code end-------------------------
+
+								//---print to file
+								fputs(strCat_2(itoa10_2(instructNumber), "\t"), ourListingFile); //line number (aprox solid size)
+								fputs(strCat_2(LOCCTR, "\t"), ourListingFile); //locctr (solid size)
+								fputs(strCat_2(objectCode, "\t"), ourListingFile); //object code (solid size)
+								if(longestErrorLine > 0)
+									fputs(strCat_2(concatBack(Errors, longestErrorLine - strlen(Errors), ' '), "\t"), ourListingFile); //error line (variable size but small)
+								fputs(strCat_2(SourceLine, "\t"), ourListingFile); //source line (variable size but large)
+								fputs("\n", ourListingFile);
+
+								//---free all memory
+								//TODO... 
 							}
-
-							//this is edited so we always have object code of size 6
-							int add0s = 6 - strlen(objectCode);
-							char * objectCodeForListing = concatFront(objectCode, add0s, '0');
-
-							//-------------------------create object code end-------------------------
-
-							//---print to file
-							fputs(strCat_2(itoa10_2(instructNumber),"\t"), ourListingFile); //line number (aprox solid size)
-							fputs(strCat_2(LOCCTR, "\t"), ourListingFile); //locctr (solid size)
-							fputs(strCat_2(objectCodeForListing, "\t"), ourListingFile); //object code (solid size)
-							fputs(Errors, ourListingFile); //error line (variable size but small)
-							fputs(strCat_2(SourceLine, "\t"), ourListingFile); //source line (variable size but large)
-							fputs("\n", ourListingFile);
-
-							//---free all memory
-							//TODO... 
+							//ELSE... we ignore the blank line
 
 							break;
 						default:
@@ -486,44 +516,11 @@ int errorInErros(char * error, char * errors) //we ASSUME the length of errors a
 	return 0; //we tried searching all the errors and did not locate the one we were looking for
 }
 
-int charToAscii10(char c) {
-	switch (c)
-	{
-	case 'a': return 97;
-	case 'b': return 98;
-	case 'c': return 99;
-	case 'd': return 100;
-	case 'e': return 101;
-	case 'f': return 102;
-	case 'g': return 103;
-	case 'h': return 104;
-	case 'i': return 105;
-	case 'j': return 106;
-	case 'k': return 107;
-	case 'l': return 108;
-	case 'm': return 109;
-	case 'n': return 110;
-	case 'o': return 111;
-	case 'p': return 112;
-	case 'q': return 113;
-	case 'r': return 114;
-	case 's': return 115;
-	case 't': return 116;
-	case 'u': return 117;
-	case 'v': return 118;
-	case 'w': return 119;
-	case 'x': return 120;
-	case 'y': return 121;
-	default: return 122; //this MUST be z
-	}
-}
-
 char* lettersToHex(char * letters) {
 	char * hex = returnEmptyString_2();
 	for (int i = 0; i < strlen(letters); i++) {
-		char * temp = malloc(2 * sizeof(char));
-		temp[0] = charToAscii10(letters[i]);
-		temp[1] = '/0';
+		char * temp = b10Int_To_b16Str((int)letters[i]); //return number (0 -> 255)base 10 -OR- (00 -> FF)base 16 -AS- a string in hex
+		//printf("char '%c' to int '%i' to string '%s'\n", letters[i], (int)letters[i], temp);
 		hex = strCatFreeFirst_2(&hex, temp);
 	}
 	return hex;
