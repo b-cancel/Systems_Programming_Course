@@ -113,4 +113,9 @@ OPERATION SPECIFIC-----
 -Illegal operand field 
 -Missing or misplaced operand in instruction
 -Undefined symbol in operand
+
+900 -> program length above 32768 byte limit (***READ BY PASS 2)
+910 -> LOCCTR is too big and should be smaller than (FFFF) base 16 (***READ BY PASS 2)
+
+errors 330(label refed DNE) and 420(label refed DNE) ADD
 */

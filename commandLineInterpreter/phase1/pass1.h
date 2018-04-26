@@ -738,10 +738,10 @@ int* processFullInstruction(
 						if ((strtol(operand, NULL, 10)) <= MAX_SIZE) //we will be able to store this in a word
 							locctrAddition = 3;
 						else
-							errors = strCatFreeFirst(&errors, "x360x"); //we cant store this operand in a word (3 bytes)
+							errors = strCatFreeFirst(&errors, "x490x"); //we cant store this operand in a word (3 bytes)
 					}
 					else
-						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x470x"); //you need a dec number passed
 
 				}
 				else if (strcmp(operationName, "resb") == 0) //Reserves space for n bytes
@@ -752,10 +752,10 @@ int* processFullInstruction(
 						if (newAddition <= MAX_LOCCTR_SIZE)
 							locctrAddition = newAddition;
 						else
-							errors = strCatFreeFirst(&errors, "x350x"); //this addition would overflow the LOCCTR
+							errors = strCatFreeFirst(&errors, "x480x"); //this addition would overflow the LOCCTR
 					}
 					else
-						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x470x"); //you need a dec number passed
 				}
 				else if (strcmp(operationName, "resw") == 0) //Reserves space for n words (3n bytes)
 				{
@@ -765,10 +765,10 @@ int* processFullInstruction(
 						if (newAddition <= MAX_LOCCTR_SIZE)
 							locctrAddition = newAddition;
 						else
-							errors = strCatFreeFirst(&errors, "x350x"); //this addition would overflow the LOCCTR
+							errors = strCatFreeFirst(&errors, "x480x"); //this addition would overflow the LOCCTR
 					}
 					else
-						errors = strCatFreeFirst(&errors, "x340x"); //you need a dec number passed
+						errors = strCatFreeFirst(&errors, "x470x"); //you need a dec number passed
 				}
 			}
 

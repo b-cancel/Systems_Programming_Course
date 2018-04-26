@@ -155,13 +155,13 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 		if (ourIntermediateFile_INSTRUCT != NULL)
 		{
 			int instructID = 0;
-			char* line1; //source line
-			char* line2; //locctr
-			char* line3; //label
-			char* line4; //mnemonic
-			char* line5; //operand
-			char* line6; //comments
-			char* line7; //errrors
+			char* SourceLine; //source line
+			char* LOCCTR; //locctr
+			char* Label; //label
+			char* Mnemonic; //mnemonic
+			char* Operand; //operand
+			char* Comment; //comments
+			char* Errors; //errrors
 			int currLineCount = 0;
 
 			int readingInstructions = 1;
@@ -178,18 +178,18 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 						instructID++; //1 -> 8
 						switch (instructID)
 						{
-						case 1: line1 = stringCopy_2(line);  removeSpacesBack_2(&line1); break;
-						case 2: //locctr (we might or might not have one)
-							line2 = stringCopy_2(line);  
-							removeSpacesBack_2(&line2); 
-							if (isEmpty_2(line2) == 1)
-								line2 = concatFront("", 4, ' ');
+						case 1: SourceLine = stringCopy_2(line);  removeSpacesBack_2(&SourceLine); break;
+						case 2: 
+							LOCCTR = stringCopy_2(line);  
+							removeSpacesBack_2(&LOCCTR); 
+							if (isEmpty_2(LOCCTR) == 1)
+								LOCCTR = strCat_2(LOCCTR, "    ");
 							break;
-						case 3: line3 = stringCopy_2(line);  removeSpacesBack_2(&line3); break;
-						case 4: line4 = stringCopy_2(line);  removeSpacesBack_2(&line4); break;
-						case 5: line5 = stringCopy_2(line);  removeSpacesBack_2(&line5); break;
-						case 6: line6 = stringCopy_2(line);  removeSpacesBack_2(&line6); break;
-						case 7: line7 = stringCopy_2(line);  removeSpacesBack_2(&line7); break;
+						case 3: Label = stringCopy_2(line);  removeSpacesBack_2(&Label); break;
+						case 4: Mnemonic = stringCopy_2(line);  removeSpacesBack_2(&Mnemonic); break;
+						case 5: Operand = stringCopy_2(line);  removeSpacesBack_2(&Operand); break;
+						case 6: Comment = stringCopy_2(line);  removeSpacesBack_2(&Comment); break;
+						case 7: Errors = stringCopy_2(line);  removeSpacesBack_2(&Errors); break;
 						case 8:
 
 							//---change up our loop counters
@@ -197,39 +197,93 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							instructID = 0;
 							int instructNumber = (8 * currLineCount);
 
-							//---create object code
+							//-------------------------create object code start-------------------------
 
 							char * objectCode = returnEmptyString_2();
 
-							//diretive -> obj code
-							//------------------------------
-							//start		-> locctr counter
-							//end		-> no obj code
-							//byte		-> (we only care for what is inbetween the ' and other ') IF x mode (copy thing over) ELSE IF c mode (convert text to hex and copy that over)
-							//word		-> convert operand to HEX... copy over... make sure the string is 6 spaces larger (if no concat 0s in front)
-							//resb		-> literally just 4096
-							//resw		-> literally just 1
+							if (SourceLine[0] == '.') //we have found a comment
+								objectCode = strCat_2(objectCode, "      ");
+							else //we have found an instruction
+							{
+								if (errorInErros("210", Errors) == 0) //you have an valid mnemonic (directive -or- operation)
+								{
+									if (strlen(Mnemonic) != 2) //we are processing a VALID directive
+									{
+										if (
+											errorInErros("400", Errors) == 0 &&
+											errorInErros("410", Errors) == 0 &&
+											errorInErros("420", Errors) == 0 &&
+											errorInErros("430", Errors) == 0 &&
+											errorInErros("440", Errors) == 0 &&
+											errorInErros("450", Errors) == 0 &&
+											errorInErros("460", Errors) == 0 &&
+											errorInErros("470", Errors) == 0 &&
+											errorInErros("480", Errors) == 0 &&
+											errorInErros("490", Errors) == 0
+											)
+										{ //We have a VALID operand (varies)
 
-							//operation -> obj code
-							//------------------------------
-							//add, and, div, mul, or, sub	-> ?????
-							//rsub -> OP0000
-							//OTHER -> OPlabl (value from symbol table in HEX)
+											if (
+												errorInErros("x200x", Errors) == 0 && //we have an extra start directive
+												errorInErros("x140x", Errors) == 0 //we dont have a directive (only a label)
+												) 
+											{ //We have a VALID mnemonic
 
-							//------------------------------
-							//INVALID mnemonic -> "XX"
-							//VALID operand of INVALID mnemonic -> "XXXX"
-							//INVALID operand of valid mnemonic -> "XXXX"
+												//start		-> locctr counter
+												//end		-> no obj code
+												//byte		-> (we only care for what is inbetween the ' and other ') IF x mode (copy thing over) ELSE IF c mode (convert text to hex and copy that over)
+												//word		-> convert operand to HEX... copy over... make sure the string is 6 spaces larger (if no concat 0s in front)
+												//resb		-> literally just 4096
+												//resw		-> literally just 1
+
+												objectCode = strCat_2(objectCode, "DIRYYY");
+											}
+											else
+												objectCode = strCat_2(objectCode, "DIRXXX");
+										}
+										else //we have an INVALID operand (varies)
+											objectCode = strCat_2(objectCode, "DIRXXX");
+									}
+									else //we are processsing a VALID operation (NOTE: we know the operation is valid because we succesfully retreived its opcode)
+									{
+										if (strcmp("4C", Mnemonic) == 0) //we have the RSUB operation
+											objectCode = strCat_2(Mnemonic, "0000");
+										else //we have any other operation (operand should be a label) [make sure label is valid]
+										{
+											if (
+												errorInErros("300", Errors) == 0 &&
+												errorInErros("310", Errors) == 0 &&
+												errorInErros("320", Errors) == 0 &&
+												errorInErros("330", Errors) == 0
+												)
+											{ //We have a VALID operand (Label)
+												if(Operand[strlen(Operand)-2] == ',')
+													objectCode = strCat_2(Mnemonic, "INDY");
+												else
+													objectCode = strCat_2(Mnemonic, "REGY");
+											}
+											else //we have an INVALID operand (label)
+												objectCode = strCat_2(Mnemonic, "XXXX");
+										}
+										//NOTE: we are NOT addressing operations (add | and | div | mul | or | sub)
+									}
+								}
+								else //we dont have a VALID mnemonic so by definition its impossible to have a VALID operand
+									objectCode = concatFront(objectCode, 6, 'X');
+							}
 
 							//this is edited so we always have object code of size 6
-							char * objectCodeForListing = returnEmptyString_2(); 
+							int add0s = 6 - strlen(objectCode);
+							char * objectCodeForListing = concatFront(objectCode, add0s, '0');
+
+							//-------------------------create object code end-------------------------
 
 							//---print to file
-							fputs(strCat_2(itoa10_2(instructNumber),"\t\t"), ourListingFile); //line number
-							fputs(strCat_2(line2, "\t\t"), ourListingFile); //locctr
-							fputs(objectCodeForListing, ourListingFile); //object code
-							fputs(line1, ourListingFile); //source line
-							fputs(line7, ourListingFile); //error line
+							fputs(strCat_2(itoa10_2(instructNumber),"\t"), ourListingFile); //line number (aprox solid size)
+							fputs(strCat_2(LOCCTR, "\t"), ourListingFile); //locctr (solid size)
+							fputs(strCat_2(objectCodeForListing, "\t"), ourListingFile); //object code (solid size)
+							fputs(Errors, ourListingFile); //error line (variable size but small)
+							fputs(strCat_2(SourceLine, "\t"), ourListingFile); //source line (variable size but large)
 							fputs("\n", ourListingFile);
 
 							//---free all memory

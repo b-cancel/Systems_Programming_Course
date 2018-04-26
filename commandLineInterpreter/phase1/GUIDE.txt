@@ -16,29 +16,30 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 
 ----------Error Codes (will be surround by 2 Xs... EX: x000x)
 ---Special Codes [0]
-000 -> "fileName" was not found -or- did not open properly
-010 -> no START directive found with a valid operand
-020 -> no END directive found (make sure there is some space in front of your END directive [space != label])
-030 -> START directive with invalid operand because it isn't a base 16 number [label validity not checked]
-040 -> START directive with invalid operand because its larger than (FFFF) base 16 [label validity not checked]
+000 -> "fileName" was not found -or- did not open properly (NOT READ BY PASS 2)
+010 -> no START directive found with a valid operand (NOT READ BY PASS 2)
+020 -> no END directive found (make sure there is some space in front of your END directive [space != label]) (NOT READ BY PASS 2)
+030 -> START directive with invalid operand because it isn't a base 16 number [label validity not checked] (NOT READ BY PASS 2)
+040 -> START directive with invalid operand because its larger than (FFFF) base 16 [label validity not checked] (NOT READ BY PASS 2)
+
 ---Label Codes [1]
-100 -> duplicate label
-110 -> symbol table exceeded 500 label limit
-120 -> label has invalid name that starts with a digit
-130 -> label is too long
-140 -> only a label was found so we are missing an operation
+100 -> duplicate label (NOT READ BY PASS 2)
+110 -> symbol table exceeded 500 label limit (NOT READ BY PASS 2)
+120 -> label has invalid name that starts with a digit (NOT READ BY PASS 2)
+130 -> label is too long (NOT READ BY PASS 2)
+140 -> only a label was found so we are missing an operation (***READ BY PASS 2)
+
 ---Mneumonic Codes [2]
-200 -> you have an extra START directive
-210 -> invalid mneumonic (operation -or- directive )
----Operand Codes(for operations) [3]
+200 -> you have an extra START directive (***READ BY PASS 2)
+210 -> invalid mneumonic (operation -or- directive ) (***READ BY PASS 2) [x]
+
+---Operand Codes(for operations) [3] (ALL***READ BY PASS 2)
 300 -> missing operand
 310 -> operand hex number must be in bytes, so you must have an even digit count
 320 -> operand must be a number in hex
 330 -> operand label you are referencing does not exist
-340 -> operand must be a number in dec
-350 -> operand will cause LOCCTR to overflow because its max size is FFFF
-360 -> operand is too large to be saved in a word
----Operand Codes(for directives) [4]
+
+---Operand Codes(for directives) [4] (ALL***READ BY PASS 2)
 400 -> missing operand
 410 -> operand must be a number in hex
 420 -> operand label you are referencing does not exist
@@ -46,9 +47,13 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 440 -> operand larger than 16 byte max
 450 -> operand hex number must be in bytes, so you must have an even digit count
 460 -> operand must be a string or hex value with marker 'c' or 'x'
+470 -> operand must be a number in dec
+480 -> operand will cause LOCCTR to overflow because its max size is FFFF
+490 -> operand is too large to be saved in a word
+
 ---misc Codes [9]
-900 -> program length above 32768 byte limit
-910 -> LOCCTR is too big and should be smaller than (FFFF) base 16
+900 -> program length above 32768 byte limit (***READ BY PASS 2)
+910 -> LOCCTR is too big and should be smaller than (FFFF) base 16 (***READ BY PASS 2)
 
 NOTE: you told us not to implement ERROR CODES 330 -or- 420... so they are there but will not function (for now)
 
