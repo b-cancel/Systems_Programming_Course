@@ -18,16 +18,8 @@
 
 #pragma endregion
 
-void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel, char **_lastLabel, int programLength)
+void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 {
-	char *firstLabel = *_firstLabel;
-	char *lastLabel = *_lastLabel;
-
-	printf("source name is '%s' intermediate file name is '%s'\n", sourceFileName, intermediateFileName);
-	printf("first label is '%s', last label is '%s', and the program length is %i\n", firstLabel, lastLabel, programLength);
-
-	printf("READY FOR PASS 2\n\n");
-
 	//create the variables that will be used to read in our file
 	char *line = NULL; //NOTE: this does not need a size because getline handle all of that
 	size_t len = 0;
@@ -72,7 +64,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	else
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 
-	printf("READING 1 COMPLETE\n\n");
+	
 
 	//-------------------------2nd File Reading(to process the data in the intermeditae file)-------------------------
 
@@ -80,6 +72,8 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	FILE *ourListingFile = fopen(strCat("./", listingFileName), "w"); //wipes out the file
 	char* objectFileName = strCat(subString(sourceFileName, 0, strlen(sourceFileName) - 4), "Object.txt");
 	FILE *ourObjectFile = fopen(strCat("./", objectFileName), "w"); //wipes out the file
+	printf("Listing File: '%s'\n", listingFileName);
+	printf("Object File: '%s'\n", objectFileName);
 	if (ourListingFile != NULL && ourObjectFile != NULL)
 	{
 		FILE *ourIntermediateFile_INSTRUCT = fopen(strCat("./", intermediateFileName), "r");
@@ -99,9 +93,13 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 			int readingInstructions = 1;
 
 			int textRecordSize = 0;
+			int textRecordRES_size = 0; //the size of bytes reserved by reserve word and reserve byte (used for final text record size calculation)
 			int textRecordBegin = 0;
 			char* textRecordInstructs = returnEmptyString();
 			char* textRecordAddress = returnEmptyString();
+
+			int forceTextRecordCreation = 0;
+			char* endRecord = returnEmptyString();
 
 			//keep reading our intermediate file until there is nothing left
 			while (getline(&line, &len, ourIntermediateFile_INSTRUCT) != -1)
@@ -122,7 +120,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							if (isEmpty(LOCCTR) == 1)
 								LOCCTR = strCat(LOCCTR, "    ");
 							else
-								LOCCTR = b10Str_To_b16Str(LOCCTR);
+								LOCCTR = b10Str_To_b16Str(LOCCTR,0);
 							break;
 						case 3: Label = stringCopy(line);  removeSpacesBack(&Label); break;
 						case 4: Mnemonic = stringCopy(line);  removeSpacesBack(&Mnemonic); break;
@@ -130,6 +128,8 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 						case 6: Comment = stringCopy(line);  removeSpacesBack(&Comment); break;
 						case 7: Errors = stringCopy(line);  removeSpacesBack(&Errors); break;
 						case 8:
+
+							forceTextRecordCreation = 0;
 
 							//---change up our loop counters
 							currLineCount++;
@@ -140,6 +140,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							if (isBlankLine(SourceLine) == 0) 
 							{
 								int textRecord_A_Size = 0;
+								int textRecord_A_Size_RES = 0;
 								char *textRecord_A_Instruct = returnEmptyString();
 
 								if (errorInErros("910", Errors) == 1)
@@ -199,7 +200,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 																errorInErros("x900x", Errors) == 0
 																) 
 															{
-																char * progLen = b10Int_To_b16Str(programLength);
+																char * progLen = b10Int_To_b16Str(programLength,0);
 																fputs(
 																	strCat("H", //indicate we have a header record
 																		strcat(Label, //print the VALID label of this start directive
@@ -231,13 +232,12 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 														if(index == -1) //the label we are searching for is not in our symbol table
 															Errors = strCatFreeFirst(&Errors, "x420x");
 														else {
-															char * operand16 = b10Int_To_b16Str(symbolTbl[index].value);
-															fputs(
-																strCat("E", //indicate we have a header file
-																	strCat(concatFront(operand16, 6 - strlen(operand16), '0'),
-																		"\n"
-																	)
-																), ourObjectFile
+															forceTextRecordCreation = 1;
+															char * operand16 = b10Int_To_b16Str(symbolTbl[index].value,0);
+															endRecord = strCat("E", //indicate we have a header file
+																strCat(concatFront(operand16, 6 - strlen(operand16), '0'),
+																	"\n"
+																)
 															);
 														}
 													}
@@ -258,7 +258,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 														//NOTE: we have to make sure these values are passed in sets of bytes (even length digits on the object code)
 													}
 													else if (strcmp(Mnemonic, "word") == 0) {
-														char* base16 = b10Str_To_b16Str(Operand);
+														char* base16 = b10Str_To_b16Str(Operand,0);
 														int add0sp = 6 - strlen(base16);
 														objectCode = strCat(objectCode, concatFront(base16, add0sp, '0'));
 														textRecord_A_Size = 3;
@@ -267,11 +267,13 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 													else if (strcmp(Mnemonic, "resb") == 0) {
 														objectCode = strCat(objectCode, "4096  ");
 														textRecord_A_Size = 1;
+														textRecord_A_Size_RES = 1;
 														textRecord_A_Instruct = "  ";
 													}
 													else { //this MUST be "RESW"
 														objectCode = strCat(objectCode, "1     ");
 														textRecord_A_Size = 3;
+														textRecord_A_Size_RES = 3;
 														textRecord_A_Instruct = "      ";
 													}
 												}
@@ -306,7 +308,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 														else {
 															int val = symbolTbl[index].value;
 															val += 32768;
-															objectCode = strCat(Mnemonic, b10Int_To_b16Str(val));
+															objectCode = strCat(Mnemonic, b10Int_To_b16Str(val,0));
 														}
 													}
 													else //non indexed label
@@ -317,7 +319,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 															objectCode = strCat(Mnemonic, "XXXX");
 														}
 														else
-															objectCode = strCat(Mnemonic, b10Int_To_b16Str(symbolTbl[index].value));
+															objectCode = strCat(Mnemonic, b10Int_To_b16Str(symbolTbl[index].value,0));
 													}
 												}
 												else //we have an INVALID operand (label)
@@ -350,8 +352,67 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 									objectCode = concatFront(objectCode, add0s, '0');
 								}
 
-								//printf("'%s'\n", SourceLine);
-								printf("instruction '%s' is '%i' byte large\n", textRecord_A_Instruct, textRecord_A_Size);
+								int futureSize = (textRecordSize + textRecord_A_Size);
+								if (futureSize >= 30 || forceTextRecordCreation == 1) //we need to write out the record and reset everything
+								{
+									if (futureSize > 30) 
+									{
+										fputs(
+											strCat("T", //indicate its a text record
+												strCat(textRecordAddress, //print the address where this record starts
+													strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
+														strCat(textRecordInstructs, //print the instructions
+															"\n"
+														)
+													)
+												)
+											)
+											, ourObjectFile
+										);
+
+										//we have already begun
+										textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0'); //we already have the address
+										//we already have the first instruct
+										textRecordInstructs = stringCopy(textRecord_A_Instruct);
+										textRecordSize = textRecord_A_Size;
+										textRecordRES_size = textRecord_A_Size_RES;
+
+									}
+									else
+									{
+										textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
+										textRecordSize += textRecord_A_Size;
+										textRecordRES_size += textRecord_A_Size_RES;
+										fputs(
+											strCat("T", //indicate its a text record
+												strCat(textRecordAddress, //print the address where this record starts
+													strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
+														strCat(textRecordInstructs, //print the instructions
+															"\n"
+														)
+													)
+												)
+											)
+											, ourObjectFile
+										);
+
+										textRecordBegin = 0; 
+										//we grab the address this next iteration
+										//we will receive the first instruct next iteration
+										textRecordInstructs = returnEmptyString();
+										textRecordSize = 0;
+										textRecordRES_size = 0;
+									}
+
+									if (forceTextRecordCreation == 1)
+										fputs(endRecord, ourObjectFile);
+								}
+								else //we need to keep can keep adding to this text record
+								{ 
+									textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
+									textRecordSize += textRecord_A_Size;
+									textRecordRES_size += textRecord_A_Size_RES;
+								}
 
 								//-------------------------create object code end-------------------------
 
@@ -366,8 +427,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 								//---free all memory
 								//TODO... 
-
-								printf("we have copied to file\n");
 							}
 							//ELSE... we ignore the blank line
 
@@ -387,7 +446,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 		else
 			printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 		
-		printf("READING 2 COMPLETE\n\n");
+		printf("PASS 2 COMPLETE\n\n");
 
 		fclose(ourListingFile); //close our intermediate file after writing to it
 	}

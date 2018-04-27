@@ -32,8 +32,8 @@ int emptyIndex;
 
 #pragma region Prototypes
 
-char* b10Str_To_b16Str(char* base10);
-char* b10Int_To_b16Str(int b10Num);
+char* b10Str_To_b16Str(char* base10, int isInByteFormat);
+char* b10Int_To_b16Str(int b10Num, int isInByteFormat);
 
 char int_To_Char(int i);
 
@@ -106,12 +106,12 @@ void printOpCodeTable();
 
 #pragma region Functions
 
-char* b10Str_To_b16Str(char* base10)
+char* b10Str_To_b16Str(char* base10, int forceByteFormat)
 {
-	return b10Int_To_b16Str(atoi(base10));
+	return b10Int_To_b16Str(atoi(base10), forceByteFormat);
 }
 
-char* b10Int_To_b16Str(int b10Num)
+char* b10Int_To_b16Str(int b10Num, int forceByteFormat)
 {
 	//prep string
 	char *result = returnEmptyString();
@@ -132,6 +132,13 @@ char* b10Int_To_b16Str(int b10Num)
 	char* temp = concatFront(result, 1, int_To_Char(b10Num));
 	freeMem(&result);
 	result = temp;
+
+	//add 0 if needed
+	if (forceByteFormat == 1 && strlen(result) % 2 != 0) {
+		char * temp2 = concatFront(result, 1, '0');
+		freeMem(&result);
+		result = temp2;
+	}
 
 	//return string
 	return result;
@@ -213,7 +220,7 @@ int errorInErros(char * error, char * errors) //we ASSUME the length of errors a
 char* lettersToHex(char * letters) {
 	char * hex = returnEmptyString();
 	for (int i = 0; i < strlen(letters); i++) {
-		char * temp = b10Int_To_b16Str((int)letters[i]); //return number (0 -> 255)base 10 -OR- (00 -> FF)base 16 -AS- a string in hex
+		char * temp = b10Int_To_b16Str((int)letters[i], 0); //return number (0 -> 255)base 10 -OR- (00 -> FF)base 16 -AS- a string in hex
 														 //printf("char '%c' to int '%i' to string '%s'\n", letters[i], (int)letters[i], temp);
 		hex = strCatFreeFirst(&hex, temp);
 	}

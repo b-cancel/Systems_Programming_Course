@@ -96,8 +96,6 @@ void pass1(char* filename)
 	//---Vars to Pass to Pass 2
 	//symbol table (global)
 	//opcode table (global)
-	char* programFirstLabel = returnEmptyString();
-	char* programLastLabel = returnEmptyString();
 	int programLength = 0; //required for the begining of pass 2
 
 						   //---Debugging Tools
@@ -216,9 +214,6 @@ void pass1(char* filename)
 				//free(line); //TODO... this should work but it doesnt
 			}
 
-			freeMem(&programFirstLabel);
-			programFirstLabel = stringCopy(label);
-
 			//if we stoped reading the file because a START with a valid operand was found (we have some commands to read into our file)
 			if (startFound == 1) {
 
@@ -269,11 +264,6 @@ void pass1(char* filename)
 									&line, &label, &operation, &operand, &errors,
 									LOCCTR, locctrAddition, startFound, endFound
 								);
-
-								if (strcmp(operation, "end") == 0) {
-									freeMem(&programLastLabel);
-									programLastLabel = operand;
-								}
 
 								//set new vars after running function
 								LOCCTR = newVars[0]; locctrAddition = newVars[1]; startFound = newVars[2]; endFound = newVars[3];
@@ -440,7 +430,7 @@ void pass1(char* filename)
 
 		printf("PASS 1 COMPLETE\n\n");
 
-		pass2(filename, interFileName, &programFirstLabel, &programLastLabel, programLength);
+		pass2(filename, interFileName, programLength);
 	}
 	else //INTERMEDIATE did not open properly
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
