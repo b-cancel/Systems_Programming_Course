@@ -72,7 +72,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	else
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 
-	printf("READING 1\n\n");
+	printf("READING 1 COMPLETE\n\n");
 
 	//-------------------------2nd File Reading(to process the data in the intermeditae file)-------------------------
 
@@ -97,6 +97,11 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 			int currLineCount = 0;
 			int readingInstructions = 1;
+
+			int textRecordSize = 0;
+			int textRecordBegin = 0;
+			char* textRecordInstructs = returnEmptyString();
+			char* textRecordAddress = returnEmptyString();
 
 			//keep reading our intermediate file until there is nothing left
 			while (getline(&line, &len, ourIntermediateFile_INSTRUCT) != -1)
@@ -134,6 +139,9 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							//-------------------------create object code start-------------------------
 							if (isBlankLine(SourceLine) == 0) 
 							{
+								int textRecord_A_Size = 0;
+								char *textRecord_A_Instruct = returnEmptyString();
+
 								if (errorInErros("910", Errors) == 1)
 									LOCCTR = "XXXX";
 
@@ -145,9 +153,17 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 								{
 									if (errorInErros("210", Errors) == 0) //you have an valid mnemonic (directive -or- operation)
 									{
+										//-------------------------prep for obj file start-------------------------
+
+										if (textRecordBegin == 0) {
+											textRecordBegin = 1;
+											textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0');
+										}
+
 										if (strlen(Mnemonic) != 2) //we are processing a VALID directive
 										{
 											if (
+												//check for operand errors for these directives
 												errorInErros("400", Errors) == 0 &&
 												errorInErros("410", Errors) == 0 &&
 												errorInErros("420", Errors) == 0 &&
@@ -228,28 +244,35 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 													else if (strcmp(Mnemonic, "byte") == 0) {
 														//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
 
-														char * between;
-														if (Operand[0] == 'x')
-															between = subString(Operand, 2, strlen(Operand) - 3);
-														else
-															between = lettersToHex(subString(Operand, 2, strlen(Operand) - 3));
-
-														int add0sp = 6 - strlen(between);
-														if (add0sp > 0)
-															objectCode = strCat(objectCode, concatBack(between, add0sp, ' '));
-														else
-															objectCode = strCat(objectCode, between);
+														if (Operand[0] == 'x') { //ALSO guranteed to be evenn lengthed (by pass 1 error checking)
+															char *between = subString(Operand, 2, strlen(Operand) - 3);
+															textRecord_A_Size = (strlen(between)/2);
+															textRecord_A_Instruct = stringCopy(between);
+															objectCode = strCat(objectCode, concatBack(between, 6 - strlen(between), ' '));
+														}
+														else { //NOTE: adding 0s here for the sake of priting will skew what the objectCode means (since each pair of digits or byte maps to a character)
+															objectCode = lettersToHex(subString(Operand, 2, strlen(Operand) - 3)); //GURANTED to be even lengthed (can be larger than 3 byte)
+															textRecord_A_Size = (strlen(objectCode)/2);
+															textRecord_A_Instruct = stringCopy(objectCode);
+														}
+														//NOTE: we have to make sure these values are passed in sets of bytes (even length digits on the object code)
 													}
 													else if (strcmp(Mnemonic, "word") == 0) {
 														char* base16 = b10Str_To_b16Str(Operand);
 														int add0sp = 6 - strlen(base16);
 														objectCode = strCat(objectCode, concatFront(base16, add0sp, '0'));
+														textRecord_A_Size = 3;
+														textRecord_A_Instruct = stringCopy(objectCode);
 													}
 													else if (strcmp(Mnemonic, "resb") == 0) {
 														objectCode = strCat(objectCode, "4096  ");
+														textRecord_A_Size = 1;
+														textRecord_A_Instruct = "  ";
 													}
 													else { //this MUST be "RESW"
 														objectCode = strCat(objectCode, "1     ");
+														textRecord_A_Size = 3;
+														textRecord_A_Instruct = "      ";
 													}
 												}
 												else
@@ -271,6 +294,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 													errorInErros("330", Errors) == 0
 													)
 												{ //We have a VALID operand (Label)
+
 													if (Operand[strlen(Operand) - 2] == ',') //indexed label
 													{
 														char * indy = subString(Operand, 0, strlen(Operand) - 2); //get rid of ,X)
@@ -300,7 +324,23 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 													objectCode = strCat(Mnemonic, "XXXX");
 											}
 											//NOTE: we are NOT addressing operations (add | and | div | mul | or | sub)
+
+											//check oject code to see if this operation is fully valid or not
+											int xFound = 0;
+											for (int i = 0; i < strlen(objectCode); i++) {
+												if (objectCode[i] == 'X') {
+													xFound = 1;
+													break;
+												}
+											}
+
+											if (xFound == 0) { //we have a valid operation
+												textRecord_A_Size += 3;
+												textRecord_A_Instruct = stringCopy(objectCode);
+											}
 										}
+
+										//-------------------------prep for obj file end-------------------------
 									}
 									else //we dont have a VALID mnemonic so by definition its impossible to have a VALID operand
 										objectCode = concatFront(objectCode, 6, 'X');
@@ -309,6 +349,9 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 									int add0s = 6 - strlen(objectCode);
 									objectCode = concatFront(objectCode, add0s, '0');
 								}
+
+								//printf("'%s'\n", SourceLine);
+								printf("instruction '%s' is '%i' byte large\n", textRecord_A_Instruct, textRecord_A_Size);
 
 								//-------------------------create object code end-------------------------
 
@@ -323,6 +366,8 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 								//---free all memory
 								//TODO... 
+
+								printf("we have copied to file\n");
 							}
 							//ELSE... we ignore the blank line
 
@@ -342,7 +387,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 		else
 			printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 		
-		printf("READING 2\n\n");
+		printf("READING 2 COMPLETE\n\n");
 
 		fclose(ourListingFile); //close our intermediate file after writing to it
 	}

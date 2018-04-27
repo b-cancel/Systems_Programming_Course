@@ -22,11 +22,35 @@ Linkage Record ---
 End Record --- 6 byte starting location (I think)
 E --- 		   001000 
 
-//----------ACTUAL OBJECT CODE
+//1st Text Record
+1. address where text record started (2 0s in front)
+2. 1E = quantity of bytes in3 3(30 max) [calculated last]
+3. 10*6=60 digits... 2 digits are 1 byte... we have max of 30 bytes
+
+//2nd Text Record
+1. ditto
+2. 7*6 = 42 => 21 bytes = 15 (why not fully 30?) RESW(3 bytes = 1 word) RESW (3 bytes = 1) RESB (1 bytes)... still 2 bytes of space for the full 30 (cant be taken advantage of because every instruction is 3 bytes... unless its another RESB)
+
+//----------ACTUAL OBJECT CODE(instructions will always be in byte groups)
+---
 HCOPY 00100000107A 
-T0010001E1410334820390010362810303010154820613C100300102A0C103900102D
-T00101E150C10364820610810334C0000454F46000003000000
-T0020391E041030001030E0205D30203FD8205D2810303020575490392C205E38203F
-T0020571C1010364C0000F1001000041030E02079302064509039DC20792C1036
-T002073073820644C000006
+---
+T'001000'1E'141033'482039'001036'281030'301015'482061'3C1003'00102A'0C1039'00102D
+---
+T'00101E'15'0C1036'482061'081033'4C0000'454F46'000003'000000
+---
+T'002039'1E'041030'001030'E0205D'30203F'D8205D'281030'302057'549039'2C205E'38203F
+---
+T'002057'1C'101036'4C0000'F1'001000'041030'E02079'302064'509039'DC2079'2C1036
+---
+T'002073'07'382064'4C0000'06
+---
 E001000 
+
+//output all object code instructions(in different lines)
+//output when we begin reading in a new line (which is when we will write to the file)
+//do the above when we reach the end record
+//indicate that we would be writing a text record here
+
+//actually print our object file
+//actually write our object file to the object file text file
