@@ -1,4 +1,12 @@
 /*
+Programmer: Bryan Cancel
+Last Updated: 4/27/18
+
+Deliverables
+1. a documented source listing
+2. two listing of assembler language source files (one with errors, one with no errors)
+3. a copy of the listing file and the object files generated for both
+4. a copy of this should be in the 3334/phase3 directory
 */
 
 #pragma region  Library Includes
@@ -63,8 +71,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 	}
 	else
 		printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
-
-	
 
 	//-------------------------2nd File Reading(to process the data in the intermeditae file)-------------------------
 
@@ -201,18 +207,20 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 																) 
 															{
 																char * progLen = b10Int_To_b16Str(programLength,0);
-																fputs(
-																	strCat("H", //indicate we have a header record
-																		strcat(Label, //print the VALID label of this start directive
-																			strCat(concatFront(objectCode, 6 - strlen(objectCode), '0'), //add the start of the program
-																				strCat(concatFront(progLen, 6 - strlen(progLen), '0'), //add the length of the program (from param)
-																					"\n"
+																if (longestErrorLine <= 1) {
+																	fputs(
+																		strCat("H", //indicate we have a header record
+																			strcat(Label, //print the VALID label of this start directive
+																				strCat(concatFront(objectCode, 6 - strlen(objectCode), '0'), //add the start of the program
+																					strCat(concatFront(progLen, 6 - strlen(progLen), '0'), //add the length of the program (from param)
+																						"\n"
+																					)
 																				)
 																			)
-																		)
-																	),
-																	ourObjectFile
-																);
+																		),
+																		ourObjectFile
+																	);
+																}
 															}
 															//ELSE... our lable is invalid so we dont write to our object file
 														}
@@ -352,66 +360,68 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 									objectCode = concatFront(objectCode, add0s, '0');
 								}
 
-								int futureSize = (textRecordSize + textRecord_A_Size);
-								if (futureSize >= 30 || forceTextRecordCreation == 1) //we need to write out the record and reset everything
-								{
-									if (futureSize > 30) 
+								if (longestErrorLine <= 1) {
+									int futureSize = (textRecordSize + textRecord_A_Size);
+									if (futureSize >= 30 || forceTextRecordCreation == 1) //we need to write out the record and reset everything
 									{
-										fputs(
-											strCat("T", //indicate its a text record
-												strCat(textRecordAddress, //print the address where this record starts
-													strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
-														strCat(textRecordInstructs, //print the instructions
-															"\n"
+										if (futureSize > 30)
+										{
+											fputs(
+												strCat("T", //indicate its a text record
+													strCat(textRecordAddress, //print the address where this record starts
+														strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
+															strCat(textRecordInstructs, //print the instructions
+																"\n"
+															)
 														)
 													)
 												)
-											)
-											, ourObjectFile
-										);
+												, ourObjectFile
+											);
 
-										//we have already begun
-										textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0'); //we already have the address
-										//we already have the first instruct
-										textRecordInstructs = stringCopy(textRecord_A_Instruct);
-										textRecordSize = textRecord_A_Size;
-										textRecordRES_size = textRecord_A_Size_RES;
+											//we have already begun
+											textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0'); //we already have the address
+																											  //we already have the first instruct
+											textRecordInstructs = stringCopy(textRecord_A_Instruct);
+											textRecordSize = textRecord_A_Size;
+											textRecordRES_size = textRecord_A_Size_RES;
 
+										}
+										else
+										{
+											textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
+											textRecordSize += textRecord_A_Size;
+											textRecordRES_size += textRecord_A_Size_RES;
+											fputs(
+												strCat("T", //indicate its a text record
+													strCat(textRecordAddress, //print the address where this record starts
+														strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
+															strCat(textRecordInstructs, //print the instructions
+																"\n"
+															)
+														)
+													)
+												)
+												, ourObjectFile
+											);
+
+											textRecordBegin = 0;
+											//we grab the address this next iteration
+											//we will receive the first instruct next iteration
+											textRecordInstructs = returnEmptyString();
+											textRecordSize = 0;
+											textRecordRES_size = 0;
+										}
+
+										if (forceTextRecordCreation == 1)
+											fputs(endRecord, ourObjectFile);
 									}
-									else
+									else //we need to keep can keep adding to this text record
 									{
 										textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
 										textRecordSize += textRecord_A_Size;
 										textRecordRES_size += textRecord_A_Size_RES;
-										fputs(
-											strCat("T", //indicate its a text record
-												strCat(textRecordAddress, //print the address where this record starts
-													strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
-														strCat(textRecordInstructs, //print the instructions
-															"\n"
-														)
-													)
-												)
-											)
-											, ourObjectFile
-										);
-
-										textRecordBegin = 0; 
-										//we grab the address this next iteration
-										//we will receive the first instruct next iteration
-										textRecordInstructs = returnEmptyString();
-										textRecordSize = 0;
-										textRecordRES_size = 0;
 									}
-
-									if (forceTextRecordCreation == 1)
-										fputs(endRecord, ourObjectFile);
-								}
-								else //we need to keep can keep adding to this text record
-								{ 
-									textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
-									textRecordSize += textRecord_A_Size;
-									textRecordRES_size += textRecord_A_Size_RES;
 								}
 
 								//-------------------------create object code end-------------------------
@@ -440,13 +450,27 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 			}
 
 			//TODO... find out why this is causing a segmentation fault
-			//fclose(ourIntermediateFile_INSTRUCT); //close our intermediate file after reading it
+			fclose(ourIntermediateFile_INSTRUCT); //close our intermediate file after reading it
 			fclose(ourObjectFile); //close our object file after reading it
 		}
 		else
 			printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
 		
 		printf("PASS 2 COMPLETE\n\n");
+
+		//---print the symbol table at the end of the listing file
+		fputs("---Symbol Table (string -> int)\n", ourListingFile);
+		for (int i = 0; i < emptyIndex; i++) {
+
+			char* symStr = strCat(symbolTbl[i].key, " ");
+			char* val = itoa10(symbolTbl[i].value);
+
+			symStr = strCatFreeFirst(&symStr, val);
+			symStr = strCatFreeFirst(&symStr, "\n");
+			fputs(symStr, ourListingFile);
+
+		}
+		fputs("\n", ourListingFile);
 
 		fclose(ourListingFile); //close our intermediate file after writing to it
 	}

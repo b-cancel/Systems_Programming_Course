@@ -1,3 +1,8 @@
+/*
+Programmer: Bryan Cancel
+Last Updated: 4/27/18
+*/
+
 #pragma once
 
 #pragma region Constants
