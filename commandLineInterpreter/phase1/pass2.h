@@ -32,16 +32,14 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 	char *line = NULL; //NOTE: this does not need a size because getline handle all of that
 	size_t len = 0;
 
-	//-------------------------1st File Reading(to populate symbol table)-------------------------
-	//NOTE: I could just pass over the symbol table from pass 1 but I don't have the time to try to make it work (after many attempts I was unsuccessful)
-
+	//-------------------------1st File Reading(to read in the largest error code line for formatting purposes)-------------------------
+	//NOTE: this is a ridiculous ammount of work to get a nice looking listing file... but well... I really wanted it to look pretty
 	int longestErrorLine = 0;
 
 	FILE *ourIntermediateFile_SYMTBL = fopen(strCat("./", intermediateFileName), "r");
 	if (ourIntermediateFile_SYMTBL != NULL)
 	{
 		int readingInstructions = 1;
-		int firstTime = 1;
 
 		int instructID = 0;
 		int currLineCount = 0;
@@ -67,12 +65,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 					}
 				}
 			}
-			else
-			{
-				//char * label = processFirst(&line);
-				//if (addSYMTBL(label, atoi(processFirst(&line))) == -2)
-			//		break;
-			}
 		}
 
 		fclose(ourIntermediateFile_SYMTBL); //close our intermediate file after reading it
@@ -86,7 +78,9 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 	char* listingFileName = strCat(subString(sourceFileName, 0, strlen(sourceFileName) - 4), "Listing.txt");
 	FILE *ourListingFile = fopen(strCat("./", listingFileName), "w"); //wipes out the file
-	if (ourListingFile != NULL)
+	char* objectFileName = strCat(subString(sourceFileName, 0, strlen(sourceFileName) - 4), "Object.txt");
+	FILE *ourObjectFile = fopen(strCat("./", objectFileName), "w"); //wipes out the file
+	if (ourListingFile != NULL && ourObjectFile != NULL)
 	{
 		FILE *ourIntermediateFile_INSTRUCT = fopen(strCat("./", intermediateFileName), "r");
 
@@ -137,9 +131,9 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 							instructID = 0;
 							int instructNumber = (8 * currLineCount);
 
-							if (isBlankLine(SourceLine) == 0) {
-								//-------------------------create object code start-------------------------
-
+							//-------------------------create object code start-------------------------
+							if (isBlankLine(SourceLine) == 0) 
+							{
 								if (errorInErros("910", Errors) == 1)
 									LOCCTR = "XXXX";
 
@@ -173,18 +167,63 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 													)
 												{ //We have a VALID mnemonic
 
-													if (strcmp(Mnemonic, "start") == 0) { //guaranteed to only happen once
-														if (errorInErros("x910x", Errors) == 0) {
+													if (strcmp(Mnemonic, "start") == 0) //guaranteed to only happen once
+													{ 
+														//---PREP to write listing file
+														if (errorInErros("x910x", Errors) == 0) 
+														{
 															objectCode = strCat(objectCode, LOCCTR);
+
+															//--write to object file (IF VALID)
+															if (
+																//make sure our label is valid
+																errorInErros("x120x", Errors) == 0 &&
+																errorInErros("x130x", Errors) == 0 &&
+																//make sure our program length is valid
+																errorInErros("x900x", Errors) == 0
+																) 
+															{
+																char * progLen = b10Int_To_b16Str(programLength);
+																fputs(
+																	strCat("H", //indicate we have a header record
+																		strcat(Label, //print the VALID label of this start directive
+																			strCat(concatFront(objectCode, 6 - strlen(objectCode), '0'), //add the start of the program
+																				strCat(concatFront(progLen, 6 - strlen(progLen), '0'), //add the length of the program (from param)
+																					"\n"
+																				)
+																			)
+																		)
+																	),
+																	ourObjectFile
+																);
+															}
+															//ELSE... our lable is invalid so we dont write to our object file
 														}
 														else
 															objectCode = strCat(objectCode, "XXXX");
 														int add0sp = 6 - strlen(objectCode);
 														objectCode = concatBack(objectCode, add0sp, ' ');
 													}
-													else if (strcmp(Mnemonic, "end") == 0) { //guaranteed to only happen once
+													else if (strcmp(Mnemonic, "end") == 0) //guaranteed to only happen once
+													{ 
+														//---PREP to write to listing file
 														objectCode = "      "; //no object code is produced for our listing file
 														LOCCTR = "      ";
+
+														//--write to object file (IF VALID)
+														int index = getKeyIndexSYMTBL(Operand);
+														if(index == -1) //the label we are searching for is not in our symbol table
+															Errors = strCatFreeFirst(&Errors, "x420x");
+														else {
+															char * operand16 = b10Int_To_b16Str(symbolTbl[index].value);
+															fputs(
+																strCat("E", //indicate we have a header file
+																	strCat(concatFront(operand16, 6 - strlen(operand16), '0'),
+																		"\n"
+																	)
+																), ourObjectFile
+															);
+														}
 													}
 													else if (strcmp(Mnemonic, "byte") == 0) {
 														//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
@@ -298,6 +337,7 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 
 			//TODO... find out why this is causing a segmentation fault
 			//fclose(ourIntermediateFile_INSTRUCT); //close our intermediate file after reading it
+			fclose(ourObjectFile); //close our object file after reading it
 		}
 		else
 			printf("ERROR --- INTERMEDIATE file did not open properly\n"); //THE ONLY ERROR THAT CANNOT BE IN THE INTERMEDIATE FILE
@@ -307,5 +347,5 @@ void pass2(char *sourceFileName, char * intermediateFileName, char **_firstLabel
 		fclose(ourListingFile); //close our intermediate file after writing to it
 	}
 	else
-		printf("ERROR --- LISTING file did not open properly\n");
+		printf("ERROR --- LISTING file -or- OBJECT file did not open properly\n");
 }

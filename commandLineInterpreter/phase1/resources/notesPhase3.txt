@@ -115,7 +115,9 @@ OPERATION SPECIFIC-----
 //anytime we are printing the LOCCTR
 910 -> LOCCTR is too big and should be smaller than (FFFF) base 16 (***READ BY PASS 2)
 
-CHECK
+CHECK WITH PROFESSOR
+//do we need to worry about any of the operations that are not in the script you gave us
+//does indexing do anything besides adding 32768 to the label value?
 //line 128 result
 //line 224 D vs F
 //why cant i close the file

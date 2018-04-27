@@ -25,8 +25,8 @@ For Every Line Of Code In Between START and END (including comments) we will hav
 ---Label Codes [1]
 100 -> duplicate label (NOT READ BY PASS 2)
 110 -> symbol table exceeded 500 label limit (NOT READ BY PASS 2)
-120 -> label has invalid name that starts with a digit (NOT READ BY PASS 2)
-130 -> label is too long (NOT READ BY PASS 2)
+120 -> label has invalid name that starts with a digit (***READ BY PASS 2[for start])
+130 -> label is too long (***READ BY PASS 2[for start])
 140 -> only a label was found so we are missing an operation (***READ BY PASS 2)
 
 ---Mneumonic Codes [2]
