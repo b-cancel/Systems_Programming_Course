@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="commands.h" />
+    <ClInclude Include="helperFunctions.h" />
     <ClInclude Include="pass1.h" />
     <ClInclude Include="pass2.h" />
     <ClInclude Include="sic.h" />

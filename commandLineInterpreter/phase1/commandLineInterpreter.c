@@ -34,7 +34,6 @@ I am using this because its my first time using C
 //NTS: avoid including .c file beause the linker will merge the obj files resulting from the compilation of each of the .c files
 //NTS: this is because every .c file get its own .obj file
 #include "commands.h"
-#include "pass1.h"
 
 //prototypes
 void clearStrings();
