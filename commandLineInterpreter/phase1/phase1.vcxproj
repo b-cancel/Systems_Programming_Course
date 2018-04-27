@@ -157,8 +157,10 @@
   <ItemGroup>
     <ClInclude Include="commands.h" />
     <ClInclude Include="helperFunctions.h" />
+    <ClInclude Include="hexDump.h" />
     <ClInclude Include="pass1.h" />
     <ClInclude Include="pass2.h" />
+    <ClInclude Include="phase4.h" />
     <ClInclude Include="sic.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -5,7 +5,7 @@ Last Updated: 4/27/18
 Deliverables
 1. a documented source listing
 2. two listing of assembler language source files (one with errors, one with no errors)
-3. a copy of the listing file and the object files generated for both
+3. a copy of the listing file and the object files generated
 4. a copy of this should be in the 3334/phase3 directory
 */
 

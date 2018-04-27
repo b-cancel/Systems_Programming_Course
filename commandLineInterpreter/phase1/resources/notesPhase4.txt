@@ -1,0 +1,33 @@
+GetMem (memory_address, place_to_store, mode)
+fetches either a byte (mode = 0) or a word (mode = 1) starting at the specified
+memory_address, placing it in place_to_store
+
+PutMem (memory_address, where_to_get, mode)
+deposits either a byte (mode = 0) or a word (mode = 1) at the specified
+memory_address, copying it from place_to_get
+
+GetReg (register_array)
+gets all the registers (in order A, X, L, B, S, T)
+NOTE: this includes the SIC/XE registers
+
+PutReg (register_array)
+updates all the registers (in order A, X, L, B, S, T)
+NOTE: this includes the SIC/XE registers
+
+ADDRESS GetPC()
+returns the current value of the PC
+
+GetIR(address, character_string)
+returns the instruction stored at the specified address
+
+PutPC (new_PC)
+sets the value of PC to new_PC
+
+SICInit()
+MUST be called once only at the beginning of your program to initialize the SIC
+simulator
+
+SICRun(&address, single_step)
+calls the simulator to begin executing at location address; if the BOOLEAN variable
+single_step is TRUE, then only one step is executed
+on return, address contains the address of the instruction to execute next

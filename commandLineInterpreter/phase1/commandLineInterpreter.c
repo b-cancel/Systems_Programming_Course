@@ -24,6 +24,8 @@ I am using this because its my first time using C
 
 //constants
 
+#include "sicengine.c"
+
 //---library includes
 #include <stdio.h>
 #include <string.h>

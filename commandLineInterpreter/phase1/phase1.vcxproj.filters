@@ -33,6 +33,12 @@
     <ClInclude Include="helperFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="phase4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hexDump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="commandLineInterpreter.c">
