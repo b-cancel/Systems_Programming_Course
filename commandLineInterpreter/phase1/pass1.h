@@ -63,9 +63,6 @@ I am Assuming:
 #include "helperFunctions.h"
 #include "pass2.h"
 
-//sic engine tie in
-#include "sic.h"
-
 //library includes
 #include <stdio.h>
 #include <stdlib.h>

@@ -25,6 +25,7 @@ I am using this because its my first time using C
 //constants
 
 #include "sicengine.c"
+#include "sic.h"
 
 //---library includes
 #include <stdio.h>
@@ -55,6 +56,8 @@ int numberOfParams = -1;
 
 int main()
 {
+	SICInit();
+
 	//print out welcome message and prompt user
 	printf("Welcome to Bryan [CAN]cel's [C]ommand [L]ine [I]nterpreter! A.K.A. CAN C.L.I. or just CAN\n\n");
 
@@ -192,7 +195,7 @@ int main()
 					printf("the correct formating is 'dump start end'\n");
 				}
 				else
-					dumpCommand(1, 1); //TODO eventually switch this out for the actual params
+					dumpCommand(param1, param2); //TODO eventually switch this out for the actual params
 			}
 			else if (strcmp(command, "help") == 0) {
 				printf("entered \"help\" command\n");

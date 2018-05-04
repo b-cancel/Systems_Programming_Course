@@ -15,9 +15,6 @@ Deliverables
 
 #include "helperFunctions.h"
 
-//sic engine tie in
-#include "sic.h"
-
 //library includes
 #include <stdio.h>
 #include <stdlib.h>

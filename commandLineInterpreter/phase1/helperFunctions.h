@@ -5,6 +5,8 @@ Last Updated: 4/27/18
 
 #pragma once
 
+#include "sic.h"
+
 #pragma region Constants
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
@@ -39,6 +41,7 @@ int emptyIndex;
 
 char* b10Str_To_b16Str(char* base10, int isInByteFormat);
 char* b10Int_To_b16Str(int b10Num, int isInByteFormat);
+int b16Str_To_b10Int(char* base16);
 
 char int_To_Char(int i);
 
@@ -49,6 +52,9 @@ int errorInErros(char * error, char * errors);
 
 char* lettersToHex(char * letters);
 
+unsigned char hexToLetter(char* _2HexDigits);
+char* letterToHex(unsigned char c);
+
 #pragma endregion
 
 #pragma region Helper Function Prototypes
@@ -56,23 +62,24 @@ char* lettersToHex(char * letters);
 void freeMem(char **line);
 
 //---SPECIFIC String Processing Prototypes (require repairs)
-char* processFirst(char** l); //CHECK after repairing substrings
+char* processFirst(char** l); 
 char* processRest(char** l);
-int removeSpacesFront(char** l); //CHECK after repairing substrings
-int removeSpacesBack(char** l); //works
+int removeSpacesFront(char** l); 
+int removeSpacesBack(char** l); 
 
-								//---GENERAL String Processing Prototypes
+//---GENERAL String Processing Prototypes
 char* stringCopy(char* str);
 char* subString(char* src, int srcIndex, int strLength);
 
 //---Integer To String Prototypes
 char* reverse(char* str);
 char* itoa10(int num);
-char* itoa16(int num); //TODO... implement
+char* itoa16(int num); 
 
-					   //---Helper Prototypes
+//---Helper Prototypes
 char* returnEmptyString();
 void stringToLower(char** l);
+void stringToUpper(char** l);
 char* strCat(char* startValue, char* addition);
 char* strCatFreeFirst(char** fS, char* lastString);
 
@@ -147,6 +154,11 @@ char* b10Int_To_b16Str(int b10Num, int forceByteFormat)
 
 	//return string
 	return result;
+}
+
+int b16Str_To_b10Int(char* base16) 
+{
+	return (int)strtol(base16, NULL, 16);;
 }
 
 char int_To_Char(int i) {
@@ -230,6 +242,14 @@ char* lettersToHex(char * letters) {
 		hex = strCatFreeFirst(&hex, temp);
 	}
 	return hex;
+}
+
+unsigned char hexToLetter(char* _2HexDigits) {
+	return (unsigned char)b16Str_To_b10Int(_2HexDigits);
+}
+
+char* letterToHex(unsigned char c) {
+	return b10Int_To_b16Str((int)c, 0);
 }
 
 #pragma endregion
@@ -364,7 +384,6 @@ char* subString(char* src, int srcStartIndex, int subStringLength) {
 		destI++;
 		srcI++;
 	}
-
 	dest[subStringLength] = '\0';
 
 	return dest;
@@ -471,13 +490,24 @@ char* returnEmptyString()
 	return aStr;
 }
 
-void stringToLower(char** l) { //"returns" by reference
-
+void stringToLower(char** l) 
+{ 
 	char* line = *l;
 
 	if (strlen(line) > 1) {
 		for (int i = 0; i < strlen(line); i++)
 			line[i] = tolower(line[i]);
+	}
+	else
+		line = returnEmptyString();
+}
+
+void stringToUpper(char** l) 
+{
+	char * line = *l;
+	if (strlen(line) > 1) {
+		for (int i = 0; i < strlen(line); i++)
+			line[i] = toupper(line[i]);
 	}
 	else
 		line = returnEmptyString();

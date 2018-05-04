@@ -12,16 +12,19 @@ Assemble in defined elsewhere
 //---includes for when we add the phase 2
 #pragma once
 #include "pass1.h"
+#include "phase4.h"
 
 //-------------------------PROTOTYPES-------------------------
 
+//----------To Be Implemented Prototypes----------
+
+void debugCommand();
+
 //----------Not Fully Implemented Prototypes----------
 
+void dumpCommand(char* start, char* end); //integer base 10 version of the hex digit (if required create a conversion from HEX to DEC and pass here)
 void loadCommand(char* filename);
 void executeCommand();
-void debugCommand();
-void dumpCommand(int start, int end); //integer base 10 version of the hex digit (if required create a conversion from HEX to DEC and pass here)
-void assembleCommand(char* filename);
 
 //----------Fully Implemented Prototypes----------
 
@@ -30,25 +33,32 @@ void helpCommand();
 void assembleCommand(char* filename);
 void directoryCommand();
 void exitCommand();
+void assembleCommand(char* filename);
 
 //-------------------------MAIN FUNCTIONS-------------------------
+
+//----------To Be Implemented Functions----------
+
+void debugCommand() {
+	printf("running debug command\n");
+}
 
 //----------Not Fully Implemented Functions----------
 
 void loadCommand(char* filename) {
 	printf("running load command\n");
+
+	loadExt(filename);
 }
 
 void executeCommand() {
 	printf("running execute command\n");
 }
 
-void debugCommand() {
-	printf("running debug command\n");
-}
-
-void dumpCommand(int start, int end) {
+void dumpCommand(char* start, char* end) {
 	printf("running dump command\n");
+
+	dumpExt(start, end);
 }
 
 //----------Fully Implemented Functions----------
