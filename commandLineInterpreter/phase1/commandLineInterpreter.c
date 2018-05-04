@@ -280,8 +280,7 @@ void printStrings() {
 }
 
 void clearCommand() {
-
-	printf("ran SECRET COMMAND! pretend it doesn't exist please and thank you :)");
-
 	system("clear");
+
+	printf("ran SECRET COMMAND! pretend it doesn't exist please and thank you :)\n");
 }

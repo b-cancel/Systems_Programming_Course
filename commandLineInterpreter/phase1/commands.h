@@ -22,8 +22,8 @@ void debugCommand();
 
 //----------Not Fully Implemented Prototypes----------
 
-void dumpCommand(char* start, char* end); //integer base 10 version of the hex digit (if required create a conversion from HEX to DEC and pass here)
 void loadCommand(char* filename);
+void dumpCommand(char* start, char* end); //integer base 10 version of the hex digit (if required create a conversion from HEX to DEC and pass here)
 void executeCommand();
 
 //----------Fully Implemented Prototypes----------
@@ -51,14 +51,16 @@ void loadCommand(char* filename) {
 	loadExt(filename);
 }
 
-void executeCommand() {
-	printf("running execute command\n");
-}
-
 void dumpCommand(char* start, char* end) {
 	printf("running dump command\n");
 
 	dumpExt(start, end);
+}
+
+void executeCommand() {
+	printf("running execute command\n");
+
+	executeExt();
 }
 
 //----------Fully Implemented Functions----------

@@ -249,7 +249,7 @@ unsigned char hexToLetter(char* _2HexDigits) {
 }
 
 char* letterToHex(unsigned char c) {
-	return b10Int_To_b16Str((int)c, 0);
+	return b10Int_To_b16Str((int)c, 1);
 }
 
 #pragma endregion

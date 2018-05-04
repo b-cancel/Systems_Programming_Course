@@ -46,19 +46,7 @@ ADDRESS endAddress;
 
 void loadExt(char* sourceFileName) 
 {
-	FILE *testFile = fopen("convTest.txt", "w");
-	for (int i = 0; i < 256; i++) {
-		int dec1 = i;
-		char* hex1 = b10Int_To_b16Str(dec1, 0);
-		unsigned char encoding = hexToLetter(hex1);
-		unsigned char* en = malloc(2 * sizeof(unsigned char));
-		en[0] = encoding;
-		en[1] = '\0';
-		char* hex2 = letterToHex(encoding);
-		int dec2 = b16Str_To_b10Int(hex2);
-		fputs(strCat(hex1,strCat(" == ",strCat(en,strCat(" == ",strCat(hex2, "\n"))))), testFile);
-	}
-	fclose(testFile);
+	//printf("%s\n", b10Int_To_b16Str(0, 1));  //yields 00
 
 	char* objectFileName = strCat(subString(sourceFileName, 0, strlen(sourceFileName) - 4), "Object.txt");
 
@@ -71,6 +59,7 @@ void loadExt(char* sourceFileName)
 		char *line = NULL; //NOTE: this does not need a size because getline handle all of that
 		size_t len = 0;
 
+		int charCount = 0;
 		while (getline(&line, &len, ourObjectFile) != -1)
 		{
 			if (line[0] == 'T')  //text record
@@ -91,8 +80,7 @@ void loadExt(char* sourceFileName)
 				
 				//loop through all of our instructions and load them into memory a WORD at a time (2 chars + null terminator)
 				while (1 == 1)
-				{
-					int index;
+				{				
 					if (isBlankLine(theLine) == 0)
 					{
 						char* byte = subString(theLine, 0, 2); //one byte is 2 characters...
@@ -102,16 +90,10 @@ void loadExt(char* sourceFileName)
 						unsigned char *res = malloc(2 * sizeof(unsigned char));
 						res[0] = hexToLetter(byte);
 						res[1] = '\0';
-						//printf("'%s'", byte);
-						//printf("->");
-						printf("'%s'", res);
-						PutMem(addressAdd, res, 0);
 
-						//unsigned char *aByte = malloc(2 * sizeof(unsigned char));
-						//aByte[0] = ' ';
-						//aByte[1] = '\0';
-						//GetMem(addressAdd, &aByte, 0);
-						//printf("'%c' == '%c'\n", res[0], aByte[0]);
+						charCount++;
+
+						PutMem(addressAdd, res, 0);
 
 						theLine = subString(theLine, 2, strlen(theLine) - 2);
 						addressAdd++;
@@ -119,7 +101,6 @@ void loadExt(char* sourceFileName)
 					else
 						break;
 				}
-				printf("\n\n");
 
 				endAddress = addressAdd;
 			}
@@ -127,10 +108,9 @@ void loadExt(char* sourceFileName)
 				;
 			else //header record
 				;
-			//freeMem(&line);
 		}
 
-		printf("BASE 16: '%x' -> '%x'\n\n", startAddress, endAddress);
+		printf("BASE 16: '%x' -> '%x'\n", startAddress, endAddress);
 
 		printf("LOAD COMPLETE\n\n");
 	}
@@ -140,32 +120,53 @@ void loadExt(char* sourceFileName)
 	
 void dumpExt(char* start, char* end) 
 {
-	printf("dumping %s and %s\n", start, end);
-
 	if (isNumber16(start) == 1 && isNumber16(end) == 1) 
 	{
-		printf("Numbers Read As Base 16\n");
+		printf("\nNumbers Read As Base 16\n");
 
 		ADDRESS currAdd = strtol(start, NULL, 16);
 		ADDRESS endAdd = strtol(end, NULL, 16);
 
-		unsigned char *aByte = malloc(2 * sizeof(unsigned char));
-		aByte[0] = ' ';
-		aByte[1] = '\0';
+		//unsigned char *aByte = malloc(2 * sizeof(unsigned char));
+		//aByte[0] = ' ';
+		//aByte[1] = '\0';
 
-		printf("the numbers again '%i' and '%i'\n", currAdd, endAdd);
-		
+		//printf("the numbers again '%i' and '%i'\n", currAdd, endAdd);
+		int num = 10;
+		int count = 0;
 		while (currAdd < endAdd)
 		{
-			GetMem(currAdd, &aByte, 0);
-			unsigned char* hex = letterToHex(aByte[0]);
-			printf("'%s'", aByte);
-			currAdd++;
+			if(count == 0)
+				printf("%x: ", currAdd);
+
+			WORD aWord;
+			GetMem(currAdd, aWord, 1);
+			char* charWord1 = letterToHex(aWord[0]);
+			charWord1 = (strlen(charWord1) == 1) ? strCat("0",charWord1) : charWord1;
+			char* charWord2 = letterToHex(aWord[1]);
+			charWord2 = (strlen(charWord2) == 1) ? strCat("0", charWord2) : charWord2;
+			char* charWord3 = letterToHex(aWord[2]);
+			charWord3 = (strlen(charWord3) == 1) ? strCat("0", charWord3) : charWord3;
+			printf("%s'%s'%s|", charWord1, charWord2, charWord3);
+			currAdd+=3;
+
+			count++;
+			if (count % num == 0) {
+				printf("\n");
+				count = 0;
+			}
 		}
 		printf("\n");
 		
-		//extern void GetMem(ADDRESS, BYTE*, int);
+		printf("DUMP COMPLETE\n\n");
 	}
 	else
 		printf("ERROR --- Your number are not in base 16\n");
+}
+
+void executeExt() 
+{
+	printf("\nExecuting Program At Location '%x' (base 16)\n", startAddress);
+	SICRun(&startAddress, 0);
+	printf("EXECUTE COMPLETE\n\n");
 }

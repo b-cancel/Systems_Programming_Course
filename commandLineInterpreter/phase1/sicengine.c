@@ -20,8 +20,7 @@ global constant XE to FALSE.
 
 The simulator uses the following external files:
 
-Log     -- log of commands entered and results displayed (may be printed
-to obtain hard copy record of terminal session)
+Log     -- log of commands entered and results displayed (may be printed to obtain hard copy record of terminal session)
 DevBoot -- represents device 00 (bootstrap object code)
 Dev[6]  -- represent the input/output devices
 indices 0, 1, and 2 are the input devices, corresponding
