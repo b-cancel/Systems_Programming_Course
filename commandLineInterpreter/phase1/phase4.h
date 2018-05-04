@@ -35,7 +35,6 @@ after the load, and after execution of your program.
 
 //sic engine tie in
 #include "sic.h"
-#include "hexDump.h"
 
 //library includes
 #include <stdio.h>

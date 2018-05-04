@@ -139,7 +139,7 @@ void pass1(char* filename)
 				stringToLower(&lineCopy); //make this line case IN-sensitive
 
 				//we did not find a white space(potential label)
-				if (isLabel(lineCopy) == 1)
+				if (hasLabel(lineCopy) == 1)
 				{
 					label = processFirst(&lineCopy);
 					if (isEmpty(label) != 1)
@@ -239,7 +239,7 @@ void pass1(char* filename)
 							//---Check For Operation
 
 							char *tempLine = stringCopy(line);
-							if (isLabel(tempLine) == 1) {
+							if (hasLabel(tempLine) == 1) {
 								label = processFirst(&tempLine); //we are guaranteed to find atleast something
 								freeMem(&label); //TODO... this should work but it doesnt
 							}
@@ -453,7 +453,7 @@ int* processFullInstruction(
 
 	//-------------------------LABEL FIELD-------------------------
 
-	if (isLabel(line) == 1) //we have a label
+	if (hasLabel(line) == 1) //we have a label
 	{
 		label = processFirst(&line);
 		if (isEmpty(label) == 1) 

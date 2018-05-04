@@ -81,7 +81,7 @@ char* strCatFreeFirst(char** fS, char* lastString);
 int isBlankLine(char* line);
 int isEmpty(char* charArray);
 //for label
-int isLabel(char* line);
+int hasLabel(char* line);
 int isValidLabel(char* label);
 //for mnemonic
 int isDirective(char* mneumonic);
@@ -558,7 +558,7 @@ int isEmpty(char* charArray) //we only have a null terminator
 		return 0;
 }
 
-int isLabel(char* line) {
+int hasLabel(char* line) {
 	if (isspace(line[0]) == 0)
 		return 1;
 	else

@@ -99,7 +99,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 			int readingInstructions = 1;
 
 			int textRecordSize = 0;
-			int textRecordRES_size = 0; //the size of bytes reserved by reserve word and reserve byte (used for final text record size calculation)
 			int textRecordBegin = 0;
 			char* textRecordInstructs = returnEmptyString();
 			char* textRecordAddress = returnEmptyString();
@@ -146,7 +145,6 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 							if (isBlankLine(SourceLine) == 0) 
 							{
 								int textRecord_A_Size = 0;
-								int textRecord_A_Size_RES = 0;
 								char *textRecord_A_Instruct = returnEmptyString();
 
 								if (errorInErros("910", Errors) == 1)
@@ -249,17 +247,30 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 															);
 														}
 													}
-													else if (strcmp(Mnemonic, "byte") == 0) {
-														//TODO... (we only care for what is inbetween the ' and other ') IF x mode(copy thing over) ELSE IF c mode(convert text to hex and copy that over)
-
+													else if (strcmp(Mnemonic, "byte") == 0) 
+													{
 														if (Operand[0] == 'x') { //ALSO guranteed to be evenn lengthed (by pass 1 error checking)
 															char *between = subString(Operand, 2, strlen(Operand) - 3);
 															textRecord_A_Size = (strlen(between)/2);
 															textRecord_A_Instruct = stringCopy(between);
 															objectCode = strCat(objectCode, concatBack(between, 6 - strlen(between), ' '));
 														}
-														else { //NOTE: adding 0s here for the sake of priting will skew what the objectCode means (since each pair of digits or byte maps to a character)
-															objectCode = lettersToHex(subString(Operand, 2, strlen(Operand) - 3)); //GURANTED to be even lengthed (can be larger than 3 byte)
+														else //NOTE: adding 0s here for the sake of priting will skew what the objectCode means (since each pair of digits or byte maps to a character)
+														{ 
+															//---extract the ONLY CASE SENSITIVE Operand 
+															//remember (1) we know for a fact that there are no errors (2) byte directive can have labels but dont need to
+															char* sourceCopy = stringCopy(SourceLine);
+															char* Operand_CaseSensitive = returnEmptyString();
+															//remove label
+															if (hasLabel(sourceCopy) == 1)
+																processFirst(&sourceCopy);
+															//remove byte directive
+															processFirst(&sourceCopy);
+															//remove operand
+															Operand_CaseSensitive = processFirst(&sourceCopy);
+
+															//---covert the CASE SENSITIVE Operand Into hex
+															objectCode = lettersToHex(subString(Operand_CaseSensitive, 2, strlen(Operand_CaseSensitive) - 3)); //GURANTED to be even lengthed (can be larger than 3 bytes)
 															textRecord_A_Size = (strlen(objectCode)/2);
 															textRecord_A_Instruct = stringCopy(objectCode);
 														}
@@ -273,16 +284,14 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 														textRecord_A_Instruct = stringCopy(objectCode);
 													}
 													else if (strcmp(Mnemonic, "resb") == 0) {
+														forceTextRecordCreation = 1; //instead of allocating spaces 
 														objectCode = strCat(objectCode, "4096  ");
-														textRecord_A_Size = 1;
-														textRecord_A_Size_RES = 1;
-														textRecord_A_Instruct = "  ";
+														textRecord_A_Instruct = returnEmptyString(); //"  ";
 													}
 													else { //this MUST be "RESW"
+														forceTextRecordCreation = 1; //instead of allocating spaces
 														objectCode = strCat(objectCode, "1     ");
-														textRecord_A_Size = 3;
-														textRecord_A_Size_RES = 3;
-														textRecord_A_Instruct = "      ";
+														textRecord_A_Instruct = returnEmptyString(); //"      ";
 													}
 												}
 												else
@@ -361,66 +370,70 @@ void pass2(char *sourceFileName, char * intermediateFileName, int programLength)
 								}
 
 								if (longestErrorLine <= 1) {
-									int futureSize = (textRecordSize + textRecord_A_Size);
-									if (futureSize >= 30 || forceTextRecordCreation == 1) //we need to write out the record and reset everything
+
+									//(0) for when we find a RESW or RESB and there is nothing written into the current record
+									if(forceTextRecordCreation == 1 && textRecordSize == 0)
+										textRecordBegin = 0;
+									else 
 									{
-										if (futureSize > 30)
+										//(1) text records are getting too long 
+										//(2) we found the end record
+										//(3) after reading in some portion of code into a text record we find a RESW or a RESB
+										int futureSize = (textRecordSize + textRecord_A_Size);
+										if (futureSize >= 30 || forceTextRecordCreation == 1) //we need to write out the record and reset everything
 										{
-											fputs(
-												strCat("T", //indicate its a text record
-													strCat(textRecordAddress, //print the address where this record starts
-														strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
-															strCat(textRecordInstructs, //print the instructions
-																"\n"
+											if (futureSize > 30)
+											{
+												fputs(
+													strCat("T", //indicate its a text record
+														strCat(textRecordAddress, //print the address where this record starts
+															strCat(b10Int_To_b16Str(textRecordSize, 1), //print the quantity of bytes in this record
+																strCat(textRecordInstructs, //print the instructions
+																	"\n"
+																)
 															)
 														)
 													)
-												)
-												, ourObjectFile
-											);
+													, ourObjectFile
+												);
 
-											//we have already begun
-											textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0'); //we already have the address
-																											  //we already have the first instruct
-											textRecordInstructs = stringCopy(textRecord_A_Instruct);
-											textRecordSize = textRecord_A_Size;
-											textRecordRES_size = textRecord_A_Size_RES;
+												//we have already begun
+												textRecordAddress = concatFront(LOCCTR, 6 - strlen(LOCCTR), '0'); //we already have the address													  
+												textRecordInstructs = stringCopy(textRecord_A_Instruct); //we already have the first instruct
+												textRecordSize = textRecord_A_Size;
+											}
+											else
+											{
+												textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
+												textRecordSize += textRecord_A_Size;
+												fputs(
+													strCat("T", //indicate its a text record
+														strCat(textRecordAddress, //print the address where this record starts
+															strCat(b10Int_To_b16Str(textRecordSize, 1), //print the quantity of bytes in this record
+																strCat(textRecordInstructs, //print the instructions
+																	"\n"
+																)
+															)
+														)
+													)
+													, ourObjectFile
+												);
 
+												textRecordBegin = 0;
+												//we grab the address this next iteration
+												//we will receive the first instruct next iteration
+												textRecordInstructs = returnEmptyString();
+												textRecordSize = 0;
+											}
+
+											if (forceTextRecordCreation == 1)
+												fputs(endRecord, ourObjectFile);
 										}
-										else
+										else //we need to keep can keep adding to this text record
 										{
 											textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
 											textRecordSize += textRecord_A_Size;
-											textRecordRES_size += textRecord_A_Size_RES;
-											fputs(
-												strCat("T", //indicate its a text record
-													strCat(textRecordAddress, //print the address where this record starts
-														strCat(b10Int_To_b16Str(textRecordSize - textRecordRES_size, 1), //print the quantity of bytes in this record
-															strCat(textRecordInstructs, //print the instructions
-																"\n"
-															)
-														)
-													)
-												)
-												, ourObjectFile
-											);
-
-											textRecordBegin = 0;
-											//we grab the address this next iteration
-											//we will receive the first instruct next iteration
-											textRecordInstructs = returnEmptyString();
-											textRecordSize = 0;
-											textRecordRES_size = 0;
 										}
-
-										if (forceTextRecordCreation == 1)
-											fputs(endRecord, ourObjectFile);
-									}
-									else //we need to keep can keep adding to this text record
-									{
-										textRecordInstructs = strCatFreeFirst(&textRecordInstructs, textRecord_A_Instruct); //keep adding instructions
-										textRecordSize += textRecord_A_Size;
-										textRecordRES_size += textRecord_A_Size_RES;
 									}
 								}
 
